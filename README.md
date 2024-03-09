@@ -45,4 +45,4 @@ The script file `main_exp.py` provides a more complex example.
 ## Artifact Evaluation
 The detailed evaluation can be found in the [evaluation](doc/evaluation.md) file.
 ## License
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the GNU GPLv3 License - see the [LICENSE.md](LICENSE.md) file for details

@@ -1,5 +1,3 @@
-
-
 import copy
 from qiskit.quantum_info import random_clifford,Statevector
 from functools import reduce
@@ -36,7 +34,11 @@ def get_circuit_from_label(label:str,n_qubits:int):
     return layer_circuit
 
 def build_relation(process,input_qubits,output_qubits,**config):
-    input_states,output_states = process_sample(process,input_qubits,output_qubits= output_qubits,**config)
+    sampleconfig = {}
+    sampleconfig['method'] = config['sample_method']
+    sampleconfig['base_num'] =min(config['base_num'],2**(len(input_qubits)+1))
+    sampleconfig['device'] = config['device']
+    input_states,output_states = process_sample(process,input_qubits,output_qubits= output_qubits,**sampleconfig)
     output_states = list(map(convert_density_to_state, output_states))
     return input_states,output_states
 

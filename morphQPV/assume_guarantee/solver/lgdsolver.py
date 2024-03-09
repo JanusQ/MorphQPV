@@ -152,14 +152,10 @@ def adagrad(step_size, momentum=0.9):
 class LGDSolver(Solver):
     def __init__(self, **config):
         super().__init__(**config)
+        self.step_size = config['step_size']
+        self.steps = config['steps']
         self.paramsize = 0
         self.tracepoint_states= {}
-        self.strongest_weight = 1000
-        self.max_weight = 100
-        self.high_weight = 10
-        self.min_weight = 0.01
-        self.step_size = 0.01
-        self.steps = 10000
         self.objectivefuncs = []
         self.lagrange_constraintfuncs = []
         self.ktt_constraintfuncs = []

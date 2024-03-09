@@ -1,12 +1,14 @@
 
 DEFAULTCONFIG = {
     'solver': 'lgd',
+    'strongest_weight': 1000,
     'max_weight': 100,
     'high_weight': 10,
     'min_weight': 0.01,
     'step_size': 0.01,
     'steps': 1000,
-    'sample_method': 'statevector',
+    'early_stopping_iter':100,
+    'sample_method': 'random',
     'base_num': 100,
     'device': 'simulate'
 }

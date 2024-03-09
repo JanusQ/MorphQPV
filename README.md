@@ -41,7 +41,7 @@ with MorphQC() as morphQC:
     morphQC.guarantee([1,2],Equal()) ## the state in tracepoint 1 and 2 are guaranteed to be equal
 print(morphQC.assertion) ## print the assertion statement and verify result
 ```
-The script file `main_exp.py` provides a more complex example.
+The script file `main_exp.py` provides a more complex example. There are hyper-parameters in each stage of the verification. Users can check the details in [config](doc/morphconfig.md).
 ## Artifact Evaluation
 The detailed evaluation can be found in the [evaluation](doc/evaluation.md) file.
 ## License

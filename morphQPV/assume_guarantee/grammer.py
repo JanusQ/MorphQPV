@@ -224,9 +224,9 @@ class MorphQC(CircuitTape):
     def get_solver(self):
         '''get the solver'''
         if self.config.solver == 'sgd':
-            return SGDSolver()
+            return SGDSolver(**self.config.__dict__)
         elif self.config.solver == 'lgd':
-            return LGDSolver()
+            return LGDSolver(**self.config.__dict__)
         else:
             return Solver()
     def verify(self):
@@ -253,7 +253,7 @@ class MorphQC(CircuitTape):
                 continue
             verify_block = self.circuit_data[:self.tracepoint_idxes_in_layer[idx]]
             verify_block = self.to_layer_circuit(verify_block)
-            relation = build_relation(verify_block,self.tracepoints[0]['qubits'], self.tracepoints[idx]['qubits'])
+            relation = build_relation(verify_block,self.tracepoints[0]['qubits'], self.tracepoints[idx]['qubits'],**self.config.__dict__)
             solver.add_relation(0, idx, relation)
 
         for idxes, predicate, args in self.assume_points:

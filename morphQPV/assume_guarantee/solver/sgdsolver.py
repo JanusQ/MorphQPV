@@ -42,12 +42,13 @@ class SGDSolver(Solver):
         super().__init__(**config)
         self.paramsize = 0
         self.tracepoint_states= {}
-        self.strongest_weight = 1000
-        self.max_weight = 100
-        self.high_weight = 10
-        self.min_weight = 0.01
-        self.step_size = 0.01
-        self.steps = 1000
+        self.strongest_weight = config['strongest_weight']
+        self.max_weight = config['max_weight']
+        self.high_weight = config['high_weight']
+        self.min_weight = config['min_weight']
+        self.step_size = config['step_size']
+        self.steps = config['steps']
+        self.early_stopping_iter = config['early_stopping_iter']
         self.objectivefuncs = []
     
         
@@ -85,14 +86,13 @@ class SGDSolver(Solver):
                     min_cost = cost
                     bast_params = params
                     pbar.set_description(f'sgd optimizing')
-                    #设置进度条右边显示的信息
                     pbar.set_postfix(loss=cost, min_loss=min_cost)
                 if jnp.abs(min_cost-last_cost) < 1e-5:
                     min_iter += 1
                 else:
                     min_iter = 0
-                # 当连续50次迭代损失函数变化小于1e-5时，认为收敛
-                if min_iter > 50:
+                ## when the loss function changes less than 1e-5 for 50 consecutive iterations, it is considered to converge
+                if min_iter > self.early_stopping_iter:
                     pbar.set_description(f'sgd optimizing converge')
                     pbar.set_postfix(loss=cost, min_loss=min_cost)
                     break

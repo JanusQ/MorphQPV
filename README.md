@@ -18,7 +18,7 @@ Here is an example of using MorphQV to verify a quantum circuit:
 
 ```python
 from morphQPV import MorphQC
-from morphQPV import IsPure,Equal,Trace,NotEqual
+from morphQPV import IsPure,Equal,NotEqual
 import numpy as np
 with MorphQC() as morphQC:
     ### morphQC is a quantum circuit, the gate is applyed to the qubits in the order of the list

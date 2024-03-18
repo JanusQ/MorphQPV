@@ -12,6 +12,14 @@ from scipy.stats import unitary_group
 from morphQPV.execute_engine.excute import ExcuteEngine,convert_state_to_density
 from tqdm import tqdm
 from time import perf_counter
+import ray
+
+@ray.remote
+def optimizer_bench(layer_circuit,input_state,optimizer,method,base_num):
+    start = perf_counter()
+    build_input, build_output = infer_process_by_statevector(layer_circuit[1:],input_state,optimizer=optimizer,method=method,base_num=base_num,target='input')
+    end = perf_counter()
+    return optimizer,end-start
 
 def get_run_time(circuit, num_qubits,method='random',base_num=4):
     U = unitary_group.rvs(2**num_qubits)
@@ -21,14 +29,10 @@ def get_run_time(circuit, num_qubits,method='random',base_num=4):
     state0[0] = 1
     input_state = U @ state0
     layer_circuit.insert(0,[{'name':'unitary','params': U,'qubits':all_qubits}])
-    real_output_state = ExcuteEngine.excute_on_pennylane(layer_circuit,type='statevector')
-    for optimizer in ['descent','quadratic','annealing']:
-        start = perf_counter()
-        build_input, build_output = infer_process_by_statevector(layer_circuit[1:],input_state,optimizer=optimizer,method=method,base_num=base_num,target='input')
-        end = perf_counter()
-        print(f'{optimizer} time: {end-start} s fidelity: {fidelity(convert_state_to_density(real_output_state),convert_state_to_density(build_output))}')
-        yield optimizer,end-start
- 
+    # real_output_state = ExcuteEngine.excute_on_pennylane(layer_circuit,type='statevector')
+    return ray.get([optimizer_bench.remote(layer_circuit,input_state,optimizer,method,base_num) for optimizer in ['descent','quadratic','annealing']])
+
+@ray.remote
 def get_data(name,n_qubits):
     
     layer_circuit = layer_circuit_generator(name,n_qubits)
@@ -37,15 +41,13 @@ def get_data(name,n_qubits):
     time_dict = {}
     for opt,time in get_run_time(layer_circuit,n_qubits,base_num=base_nums):
         time_dict[opt] = time
+    with open(csvpath,'a') as f:
+        f.write(f'{name},{n_qubits},{time_dict["annealing"]},{time_dict["descent"]},{time_dict["quadratic"]}\n')
     return time_dict
 def get_solver_time(csvpath):
     with open(csvpath,'w') as f:
         f.write('name,qubits,annealing,descent,quadratic\n')
-    for name in ['qknn','qft','grover','qsvm','bv']:
-        for qubits in range(2,12):
-            time_dict = get_data(name,qubits)
-            with open(csvpath,'a') as f:
-                f.write(f'{name},{qubits},{time_dict["annealing"]},{time_dict["descent"]},{time_dict["quadratic"]}\n')
+    ray.get([get_data.remote(name,qubits) for name in ['qknn','qft','grover','qsvm','bv'] for qubits in range(2,12)])
 
 def plot_solver_time(csvpath):
     import numpy as np

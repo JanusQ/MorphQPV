@@ -47,7 +47,7 @@ def get_data(name,n_qubits):
 def get_solver_time(csvpath):
     with open(csvpath,'w') as f:
         f.write('name,qubits,annealing,descent,quadratic\n')
-    ray.get([get_data.remote(name,qubits) for name in ['qknn','qft','grover','qsvm','bv'] for qubits in range(2,12)])
+    ray.get([get_data.remote(name,qubits) for name in ['qknn','qft','bv'] for qubits in range(2,12,2)])
 
 def plot_solver_time(csvpath):
     import numpy as np

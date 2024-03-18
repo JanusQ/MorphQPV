@@ -156,7 +156,7 @@ if __name__ == "__main__":
     for algo in ['qnn','qec','shor','xeb']:
         for qubit in range(3,10,2):
             print(f'algo: {algo}, qubit: {qubit}')
-            profilling_test_methods(algo,qubit)
+            profilling_methods(algo,qubit)
 
     
 

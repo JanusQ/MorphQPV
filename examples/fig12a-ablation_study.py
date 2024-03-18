@@ -40,7 +40,7 @@ def get_results(name,n_qubits,csvpath,test_num=8):
     with open(csvpath,'w') as f:
         f.write('name,qubits,samples,basis_gate,clliford\n')
     layer_circuit = layer_circuit_generator(name,n_qubits)
-    base_nums = [2**(i) for i in range(n_qubits-2,n_qubits+2)]
+    base_nums = [2**(i) for i in range(n_qubits-2,2*n_qubits)]
     # ray.get([get_mean_fidelity.remote(name,layer_circuit,n_qubits,base_num=b,test_num=4,resultspath=csvpath) for b in base_nums])
     [get_mean_fidelity(name,layer_circuit,n_qubits,base_num=b,test_num=test_num,resultspath=csvpath) for b in base_nums]
 
@@ -93,6 +93,6 @@ if __name__ == '__main__':
     if not os.path.exists(resultspath):
         os.mkdir(resultspath)
     csvpath = f'{resultspath}accuracy.csv'
-    get_results('qft',7,csvpath,test_num=4)
+    get_results('qft',7,csvpath,test_num=20)
     plot_results(csvpath)
     

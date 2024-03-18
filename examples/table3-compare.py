@@ -10,6 +10,7 @@ from copy import deepcopy
 from morphQPV.baselines import proj,stat,ndd
 from qiskit.quantum_info import random_clifford
 ## ignore warning
+import ray
 import warnings
 warnings.filterwarnings("ignore")
 np.random.seed(0)
@@ -71,7 +72,7 @@ def proj_assertion(heads,layer_circuit,real_output_state,num_qubits):
     proj_gates = circuit_obj.gates_num
     proj_measurements = ExcuteEngine.excute_on_pennylane(heads+layer_circuit+proj_circuit,type='distribution',shots=10000)
 
-    return abs(1- proj_measurements[0]) < 1e-2,proj_gates
+    return abs(1- proj_measurements[0]) < 1e-2,proj_gates*5
 
 def ndd_assertion(heads,layer_circuit,real_output_state,num_qubits):
     ## proj test
@@ -79,12 +80,12 @@ def ndd_assertion(heads,layer_circuit,real_output_state,num_qubits):
     circuit_obj = ExcuteEngine(fake_gates)
     proj_gates = circuit_obj.gates_num
     proj_measurements = ExcuteEngine.excute_on_pennylane(heads+layer_circuit+proj_circuit,type='distribution',shots=1000,output_qubits=ancliqubit)
-    return abs(1- proj_measurements[0]) < 1e-2,proj_gates
+    return abs(1- proj_measurements[0]) < 1e-2,proj_gates*5
 
 def morph_assertion(heads,layer_circuit,real_output_state,num_qubits):
     output_state= ExcuteEngine.excute_on_pennylane(heads+layer_circuit,type='density')
     fid = fidelity(convert_state_to_density(real_output_state),output_state)
-    return fid > 0.98,ExcuteEngine(heads).gates_num
+    return fid > 0.98,ExcuteEngine(heads).gates_num*5
 
 
 def quito_assertion(heads,layer_circuit,real_output_state,num_qubits):
@@ -92,7 +93,7 @@ def quito_assertion(heads,layer_circuit,real_output_state,num_qubits):
     stat_shots = stat.assertion(real_output_state)
     stat_measurements = ExcuteEngine.excute_on_pennylane(heads+layer_circuit,type='distribution',shots=stat_shots)
     stat_verify = stat.chi_square_test(stat_measurements*stat_shots,real_distribution*stat_shots)
-    return stat_verify,1
+    return stat_verify,5
     
 
 
@@ -101,7 +102,7 @@ def stat_assertion(heads,layer_circuit,real_output_state,num_qubits):
     stat_shots = stat.assertion(real_output_state)
     stat_measurements = ExcuteEngine.excute_on_pennylane(heads+layer_circuit,type='distribution',shots=stat_shots)
     stat_verify = stat.chi_square_test(stat_measurements*stat_shots,real_distribution*stat_shots)
-    return stat_verify,1
+    return stat_verify,5
     
 
 def test_assertion(name,num_qubits,assertionfunc=proj_assertion):
@@ -113,16 +114,16 @@ def test_assertion(name,num_qubits,assertionfunc=proj_assertion):
         print('test fail')
 
 
-
+@ray.remote
 def profilling_methods(name,num_qubits):
     right_layer_circuit = layer_circuit_generator(name,num_qubits)
     bad_layer_circuit = gate_add_generator(right_layer_circuit,num_qubits)
     minimal_gates_num = ExcuteEngine(bad_layer_circuit).gates_num
-    proj_confidence,proj_gates = standard_mean_test(proj_assertion,clliford_prepare,right_layer_circuit,bad_layer_circuit,num_qubits)
-    print(f'proj confidence {proj_confidence}, gates num {proj_gates}')
+    # proj_confidence,proj_gates = standard_mean_test(proj_assertion,clliford_prepare,right_layer_circuit,bad_layer_circuit,num_qubits)
+    # print(f'proj confidence {proj_confidence}, gates num {proj_gates}')
     ## stat test
-    stat_confidence,stat_gates = standard_mean_test(stat_assertion,clliford_prepare,right_layer_circuit,bad_layer_circuit,num_qubits)
-    print(f'stat confidence {stat_confidence}  gates num {stat_gates}')
+    # stat_confidence,stat_gates = standard_mean_test(stat_assertion,clliford_prepare,right_layer_circuit,bad_layer_circuit,num_qubits)
+    # print(f'stat confidence {stat_confidence}  gates num {stat_gates}')
     ## quito test
     quito_confidence,quito_gates = standard_mean_test(quito_assertion,standard_state_prepare,right_layer_circuit,bad_layer_circuit,num_qubits)
     print(f'quito confidence {quito_confidence}  gates num {quito_gates}')
@@ -133,32 +134,17 @@ def profilling_methods(name,num_qubits):
     morph_confidence,morph_gates  = standard_mean_test(morph_assertion,clliford_prepare,right_layer_circuit,bad_layer_circuit,num_qubits)
     print(f'morph confidence {morph_confidence}  gates num {morph_gates}')
     with open(f'{resultspath}overhead.csv','a') as f:
-        f.write(f'{name},{num_qubits},{minimal_gates_num},{proj_confidence},{stat_confidence},{quito_confidence},{morph_confidence},{proj_gates},{stat_gates},{quito_gates},{morph_gates}\n')
-
-def profilling_test_methods(name,num_qubits):
-    right_layer_circuit = layer_circuit_generator(name,num_qubits)
-    bad_layer_circuit = gate_add_generator(right_layer_circuit,num_qubits)
-    minimal_gates_num = ExcuteEngine(bad_layer_circuit).gates_num
-    ## stat test
-    stat_confidence,stat_gates = standard_mean_test(stat_assertion,clliford_prepare,right_layer_circuit,bad_layer_circuit,num_qubits)
-    print(f'stat confidence {stat_confidence}  gates num {stat_gates}')
-    ## quito test
-    quito_confidence,quito_gates = standard_mean_test(quito_assertion,standard_state_prepare,right_layer_circuit,bad_layer_circuit,num_qubits)
-    print(f'quito confidence {quito_confidence}  gates num {quito_gates}')
+        f.write(f'{name},{num_qubits},{quito_confidence},{ndd_confidence},{morph_confidence},{quito_gates},{ndd_gates},{morph_gates}\n')
 
 if __name__ == "__main__":
     directory = os.path.abspath(__file__).split('/')[-1].split('.')[0]
     resultspath = os.path.join(os.path.dirname(__file__), f'{directory}/')
+    ray.init(num_cpus=4)
     if not os.path.exists(resultspath):
         os.mkdir(resultspath)
     with open(f'{resultspath}overhead.csv','w') as f:
-        f.write('name,num_qubits,gates_num,proj_confidence,stat_confidence,quito_confidence,morph_confidence,proj_gates_num,stat_gates_num,quito_gates_num,morph_gates_num\n')
-    for algo in ['qnn','qec','shor','xeb']:
-        for qubit in range(3,10,2):
-            print(f'algo: {algo}, qubit: {qubit}')
-            profilling_methods(algo,qubit)
-
-    
+        f.write('name,num_qubits,quito_confidence,ndd_confidence,morph_confidence,quito_gates_num,ndd_gates_num,morph_gates_num\n')
+    ray.get([profilling_methods.remote(algo,qubit) for algo in ['qnn','qec','shor','xeb'] for qubit in range(3,10,2)])
 
     
 

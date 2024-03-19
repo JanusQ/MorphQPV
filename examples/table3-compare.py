@@ -139,7 +139,7 @@ def profilling_methods(name,num_qubits):
 if __name__ == "__main__":
     directory = os.path.abspath(__file__).split('/')[-1].split('.')[0]
     resultspath = os.path.join(os.path.dirname(__file__), f'{directory}/')
-    ray.init(num_cpus=4)
+    # ray.init(num_cpus=4)
     if not os.path.exists(resultspath):
         os.mkdir(resultspath)
     with open(f'{resultspath}overhead.csv','w') as f:

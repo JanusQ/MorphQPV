@@ -21,6 +21,9 @@ def get_data_mnist(mnist,num_qubits):
             labels_.append(labels[i])
     data_ = np.concatenate(data_, axis=0)
     labels_ = np.array(labels_)
+    ##save the data
+    np.save(f'data/minist_data_{num_qubits}.npy',data_)
+    np.save(f'data/minist_labels_{num_qubits}.npy',labels_)
     return data_, labels_
 
 def PCA_anlysis(data):
@@ -162,7 +165,7 @@ def plot_results():
     axes.set_ylabel('total shots')
     if os.path.exists('examples/fig11-opt_strategy/') == False:
         os.makedirs('examples/fig11-opt_strategy/')
-    fig.savefig('examples/fig11-opt_strategy/optimize.svg',dpi=600,format='svg',bbox_inches='tight')
+    fig.savefig('examples/fig11-opt_strategy/optimize.pdf',dpi=600,format='pdf',bbox_inches='tight')
 
 if __name__ == "__main__":
     plot_results()

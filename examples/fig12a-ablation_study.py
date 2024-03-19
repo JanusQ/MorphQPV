@@ -93,6 +93,6 @@ if __name__ == '__main__':
     if not os.path.exists(resultspath):
         os.mkdir(resultspath)
     csvpath = f'{resultspath}accuracy.csv'
-    get_results('qft',7,csvpath,test_num=4)
+    get_results('qft',5,csvpath,test_num=4)
     plot_results(csvpath)
     

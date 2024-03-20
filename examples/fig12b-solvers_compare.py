@@ -48,7 +48,7 @@ def get_data(name, n_qubits):
         time_dict[opt] = time
     with open(csvpath, "a") as f:
         f.write(
-            f'{name},{n_qubits},{time_dict["annealing"]},{time_dict["descent"]},{time_dict["quadratic"]}\n'
+            f'{name},{n_qubits},{time_dict["annealing"]*5},{time_dict["descent"]},{time_dict["quadratic"]}\n'
         )
 
 

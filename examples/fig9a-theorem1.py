@@ -216,6 +216,19 @@ def plot_results():
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="validate theorem 1 in the paper by fig9(a)"
+    )
+    parser.add_argument(
+        "--earlystop",
+        action="store_true",
+        default=False,
+        help="reduce the sampling time",
+    )
+    args = parser.parse_args()
+
     directory = os.path.abspath(__file__).split("/")[-1].split(".")[0]
     respath = os.path.join(os.path.dirname(__file__), f"{directory}/")
     if not os.path.exists(respath):

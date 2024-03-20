@@ -37,7 +37,7 @@ def get_device(num_qubits,dev_type='an'):
         dev = qml.device('qiskit.aer', wires=num_qubits, noise_model=noise_model)
     return dev
 
-def estimate_input(process: list,num_qubits,input_qubits: Iterable,output_target,output_qubits=None,max_iterations=1000,dev_type='st',preparation_type='state'):
+def estimate_input(process: list,num_qubits,input_qubits: Iterable,output_target,output_qubits=None,max_iterations=50,dev_type='st',preparation_type='state'):
     '''
         通过对process 进行多次初始化，得到 多个 output,其线性叠加对应与整个process 的函数
         process: 电路的中间表示
@@ -94,7 +94,7 @@ def estimate_input(process: list,num_qubits,input_qubits: Iterable,output_target
     return get_input_state(params), infids[-1],n_epsilons
 
 
-def estimate_output(process: list,num_qubits,output_qubits: Iterable,max_iterations=5000,dev_type='an',preparation_type='state'):
+def estimate_output(process: list,num_qubits,output_qubits: Iterable,max_iterations=50,dev_type='an',preparation_type='state'):
     '''
         通过对process 进行多次初始化，得到 多个 output,其线性叠加对应与整个process 的函数
         process: 电路的中间表示

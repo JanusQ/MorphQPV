@@ -19,7 +19,7 @@ def compose(parms,states):
     """
     return np.sum(np.array([parm*state for parm, state in zip(parms,states)]),axis=0)
 
-def decompose(inputs,outputs,real_target,target='input',optimizer='linear_program',steps=10000,learning_rate=0.001,jobname=None):
+def decompose(inputs,outputs,real_target,target='input',optimizer='linear_program',steps=1000,learning_rate=0.001,jobname=None):
     """ 优化参数
     Args:
         inputs: 输入的量子态

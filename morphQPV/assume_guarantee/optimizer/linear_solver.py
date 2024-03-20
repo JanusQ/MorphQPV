@@ -80,7 +80,7 @@ class LinearSolver(gp.Model):
         parms = self.addMVar(shape=len(inputs),lb=-1,ub=1,name='parms',vtype=GRB.CONTINUOUS)
         ## add constraints
         self.Params.NonConvex = 2
-        self.Params.timeLimit = 100000
+        self.Params.timeLimit = 500
         self.Params.LogToConsole = 0
         self.Params.LogFile = f'{jobname}.log'
         if len(inputs[0].shape) == 1:

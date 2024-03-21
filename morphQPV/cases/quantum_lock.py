@@ -188,6 +188,21 @@ def convert_density_to_state(density_matrix):
     idx = np.argmax(eigenvalues)
     return eigenvectors[:, idx]
 
+def generate_qml_lock_circuit(states_qubits_num, key_state, hidden_key=None, input_state=None):
+    if input_state is None:
+        layer_circuit = [[{'name': 'h', 'qubits': [0]}]]
+    else:
+        layer_circuit = [[{'name': 'initialize', 'qubits': list(range(
+            1, states_qubits_num+1)), 'params': input_state}, {'name': 'h', 'qubits': [0]}]]
+    assert len(key_state) == states_qubits_num
+    layer_circuit.append([{'name': 'flipkey', 'qubits': list(range(states_qubits_num+1)), 'ctrl_qubits': [0],
+                         'ctrled_qubits':list(range(1, states_qubits_num+1)), 'params' : key_state}])
+    if hidden_key is not None:
+        assert len(hidden_key) == states_qubits_num
+        layer_circuit.append([{'name': 'flipkey', 'qubits': list(range(states_qubits_num + 1)), 'ctrl_qubits': [0], 'ctrled_qubits':list(
+            range(1, states_qubits_num+1)), 'params': hidden_key}])
+    layer_circuit.append([{'name': 'h', 'qubits': [0]}])
+    return layer_circuit
 
 def generate_lock_circuit(states_qubits_num, key_state, hidden_key=None, input_state=None):
     if input_state is None:

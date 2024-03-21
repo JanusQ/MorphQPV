@@ -8,7 +8,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagnode import DAGNode,DAGOpNode
 from math import pi
 from collections.abc import Iterable
-
+import numpy as np
 def layer_circuit_to_qml_circuit(layer_cirucit: Iterable[Iterable[dict]]) -> qml.QNode:
     """ convert the layer_circuit to qml circuit
 
@@ -75,6 +75,9 @@ def layer_circuit_to_qml_circuit(layer_cirucit: Iterable[Iterable[dict]]) -> qml
             elif gate['name'] == 'u1':
                 phi = gate['params'][0]
                 qml.U1(phi, wires=gate_qubits)
+            elif gate['name']== 'flipkey':
+                key = np.array([int(i) for i in list(gate['params'])])
+                qml.ctrl(qml.FlipSign(key, wires=gate['ctrled_qubits']),control = gate['ctrl_qubits'][0])
             elif gate['name'] in ['rx', 'ry', 'rz']:
                 if isinstance(gate['params'],Iterable):
                     if isinstance(gate_qubits, Iterable):

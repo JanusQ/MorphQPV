@@ -252,7 +252,7 @@ def infer_circuit(stateset,n_qubit,sampletimes,lock,hidden,pbar):
     leftinput = get_input_state(left)
     infered_probs = quantumlock_simulate(lock,hidden,leftinput)
     sampletimes += 1
-    pbar.update(2**(n_qubit-1))
+    pbar.update(len(left))
     if np.sum(infered_probs) == 0:
         return infer_circuit(right, n_qubit, sampletimes,lock,hidden,pbar)
     else:
@@ -266,7 +266,7 @@ def quantum_backdoor_attack(inference_circuit, lock, hidden, n_qubit, base_num=2
     ## move lock key from the state set
     stateset.remove(lock)
     # divede the state set into two parts
-    with tqdm(total=len(stateset), desc='infering hidden key in quantum lock') as pbar:
+    with tqdm(total=len(stateset), desc='infering state vector in quantum lock') as pbar:
         infer_hidden_key,samples = infer_circuit(stateset, n_qubit,6,lock, hidden,pbar)
     assert infer_hidden_key == hidden
     return 2**((samples)/2)

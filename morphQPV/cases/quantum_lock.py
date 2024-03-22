@@ -220,6 +220,9 @@ def generate_lock_circuit(states_qubits_num, key_state, hidden_key=None, input_s
     layer_circuit.append([{'name': 'h', 'qubits': [0]}])
     return layer_circuit
 
+def quantumlock_simulate(lock,hidden,inputstate):
+    probs = inputstate[int(lock,2)]**2 + inputstate[int(hidden,2)]**2
+    return probs
 
 def state_projected(state, determined_state):
     """ project state to the subspace without determined_state """
@@ -231,9 +234,42 @@ def state_projected(state, determined_state):
     else:
         return None
 
-
+def get_input_state(states):
+    # superposition of all states
+    state = np.zeros(2**len(states[0]))
+    for s in states:
+        state[int(s, 2)] = 1
+    state = state/np.linalg.norm(state, ord=2)
+    return state
 def get_bit_string(n_qubit):
     return ''.join([str(np.random.randint(2)) for _ in range(n_qubit)])
+
+def infer_circuit(stateset,n_qubit,sampletimes,lock,hidden,pbar):
+    if len(stateset) == 1:
+        return stateset[0],sampletimes
+    left = stateset[:len(stateset)//2]
+    right = stateset[len(stateset)//2:]
+    leftinput = get_input_state(left)
+    infered_probs = quantumlock_simulate(lock,hidden,leftinput)
+    sampletimes += 1
+    pbar.update(2**(n_qubit-1))
+    if np.sum(infered_probs) == 0:
+        return infer_circuit(right, n_qubit, sampletimes,lock,hidden,pbar)
+    else:
+        return infer_circuit(left, n_qubit, sampletimes,lock,hidden,pbar)
+
+def quantum_backdoor_attack(inference_circuit, lock, hidden, n_qubit, base_num=2**4, method='random', opt='quadratic'):
+    ## using divice and conquer to find the hidden key
+    rightoutput = Statevector.from_label('1').data
+    ## generate all bit strings
+    stateset = [''.join(bit) for bit in product(['0', '1'], repeat=n_qubit)]
+    ## move lock key from the state set
+    stateset.remove(lock)
+    # divede the state set into two parts
+    with tqdm(total=len(stateset), desc='infering hidden key in quantum lock') as pbar:
+        infer_hidden_key,samples = infer_circuit(stateset, n_qubit,6,lock, hidden,pbar)
+    assert infer_hidden_key == hidden
+    return 2**((samples)/2)
 
 
 def quantum_backdoor_discovering(inference_circuit, lock, hidden, n_qubit, base_num=2**4, method='random', opt='quadratic'):

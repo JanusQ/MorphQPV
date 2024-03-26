@@ -15,8 +15,8 @@ User can run the following command after installing the required packages to rep
 conda activate morphenv
 python examples/fig7-quantumlock_verify.py --qubits [MAX_QUBITS]
 ```
-the parameter `--qubits` is the maximum number of qubits in the quantum lock circuit. The evaluation will be conducted on quantum lock circuits with qubits from 4 to `MAX_QUBITS`. The result will be saved to the default path [`examples/fig7-quantumlock_verify/`](../examples/fig7-quantumlock_verify/) directory.
-When the number of qubits reaches 15 or more, it takes a longer time to find the minimal samples, so mounting the program to run in the background with `nohup` or other would be better.
+the parameter `--qubits` is the maximum number of qubits in the quantum lock circuit. The evaluation will be conducted on quantum lock circuits with qubits from 11 to `MAX_QUBITS`(default is 21). The result will be saved to the default path [`examples/fig7-quantumlock_verify/`](../examples/fig7-quantumlock_verify/) directory.
+
 
 ### Comparison with other assertion methods(Table 4 in the paper)
 User can run the following command after installing the required packages to reproduce the result in the paper:
@@ -24,6 +24,10 @@ User can run the following command after installing the required packages to rep
 python examples/table4-compare.py
 ```
 The result will be saved to the default path [`examples/table4-compare/`](../examples/table4-compare/) directory. 
+You can use the earlystop parameter to stop the evaluation early. For example, you can run the following command to stop the evaluation after 10 quantum circuits:
+```bash
+python examples/table4-compare.py --earlystop
+```
 
 ### evaluation of theorem 1 (Fig.11(a) in the paper)
 User can run the following command after installing the required packages to reproduce the result in the paper:
@@ -57,11 +61,17 @@ Users can run the following command after installing the required packages to re
 ```bash
 python examples/fig15a-ablation_study.py
 ```
-The result will be saved to the default path [`examples/fig15a-ablation_study/`](../examples/fig15a-ablation_study/) directory.
+The result will be saved to the default path [`examples/fig15a-ablation_study/`](../examples/fig15a-ablation_study/) directory. If you want to quickly evaluate the results, you can add the `--earlystop` parameter to the command. For example:
+```bash
+python examples/fig15a-ablation_study.py --earlystop
+```
 
 ### the runtime comparison of different optimization solvers (Fig.15(b) in the paper)
 Users can run the following command after installing the required packages to reproduce the result in the paper:
 ```bash
 python examples/fig15b-solvers_compare.py
 ```
-The result will be saved to the default path [`examples/fig15b-solvers_compare/`](../examples/fig15b-solvers_compare/) directory.
+The result will be saved to the default path [`examples/fig15b-solvers_compare/`](../examples/fig15b-solvers_compare/) directory.  If you want to quickly evaluate the results, you can add the `--earlystop` parameter to the command. For example:
+```bash
+python examples/fig15b-solvers_compare.py --earlystop
+```

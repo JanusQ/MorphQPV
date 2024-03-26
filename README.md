@@ -1,7 +1,7 @@
-## MorphQV
+## MorphQPV
 language: English | [中文](doc/README.zh-CN.md)
 
-MorphQV is a tool to facilitate confident assertion-based verification in quantum computing. It provides a framework for analyzing and verifying quantum circuits using a new type of formalism. It defines an assertion statement that consists of assume-guarantee primitives and tracepoint pragma to label the target quantum state. Then, we can characterize the ground-truth relation between states using isomorphism-based approximation, which can effectively get the program states under various inputs while avoiding repeated executions. Finally, the verification is formulated as a constraint optimization problem with a confidence estimation model to enable rigorous analysis. 
+MorphQPV is a tool to facilitate confident assertion-based verification in quantum computing. It provides a framework for analyzing and verifying quantum circuits using a new type of formalism. It defines an assertion statement that consists of assume-guarantee primitives and tracepoint pragma to label the target quantum state. Then, we can characterize the ground-truth relation between states using isomorphism-based approximation, which can effectively get the program states under various inputs while avoiding repeated executions. Finally, the verification is formulated as a constraint optimization problem with a confidence estimation model to enable rigorous analysis. 
 ## Getting Started
 ### Installation
 ```bash
@@ -14,7 +14,7 @@ If the installation fails, please try to install the required packages with no v
 python -m pip install -r requirementswithnoversion.txt
 ```
 ### Example
-Here is an example of using MorphQV to verify a quantum circuit:
+Here is an example of using MorphQPV to verify a quantum circuit:
 
 ```python
 from morphQPV import MorphQC

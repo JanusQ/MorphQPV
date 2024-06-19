@@ -137,6 +137,11 @@ class ExcuteEngine:
             result = simulator.run(tcirc).result()
             data = result.data(0)
             return data['end_sv']
+        if type == 'prob':
+            backend = Aer.get_backend('qasm_simulator')
+            qiskit_circuit.measure_all()
+            distribution = execute(qiskit_circuit, backend,shots=shots).result().get_counts(qiskit_circuit)
+            return convert_counts_to_distribution(distribution)/shots
 
         if type == 'statevector':
             qiskit_circuit.remove_final_measurements()
@@ -174,11 +179,9 @@ class ExcuteEngine:
 
             return convert_counts_to_distribution(distribution)/10000
         if type == 'unitary':
-            backend = Aer.get_backend('qasm_simulator')
-            qiskit_circuit.remove_final_measurements()
-            result = execute(qiskit_circuit, backend).result()
-            return result.get_unitary(qiskit_circuit)
-    
+            import qiskit.quantum_info as qi
+            op = qi.Operator(qiskit_circuit)
+            return op._data
     
 
     @staticmethod

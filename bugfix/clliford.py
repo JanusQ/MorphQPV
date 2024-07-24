@@ -1,7 +1,9 @@
 import numpy as np
 from z3 import *
 from typing import List, Tuple
-
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit import QuantumCircuit, Aer, transpile, execute
+from qiskit.quantum_info import random_clifford
 class StabilizerTable:
     def __init__(self, n_qubits):
         self.n = n_qubits
@@ -16,19 +18,19 @@ class StabilizerTable:
         self.P ^= (self.X[:,qubit] & self.Z[:,qubit])
         self.X[:, qubit], self.Z[:, qubit] = self.Z[:, qubit].copy(), self.X[:, qubit].copy()
         # P \xor X[qubit]*Z[qubit]
-        
-
-
-    def apply_cnot(self, control, target):
-        # Apply CNOT gate from control to target
-        self.X[:, target] ^= self.X[:, control]
-        self.Z[:, control] ^= self.Z[:, target]
-        self.P ^= (self.X[:,control] & self.Z[:,target] & np.logical_not(self.X[:,target] ^ self.Z[:,control]))
 
     def apply_phase(self, qubit):
         # S gate (phase gate) on a qubit
+        self.P ^= (self.X[:,qubit] & self.Z[:,qubit])
         self.Z[:, qubit] ^= self.X[:, qubit]
-        self.P ^= self.X[:,qubit] & self.Z[:,qubit]
+
+    def apply_cnot(self, control, target):
+        # Apply CNOT gate from control to target
+        for i in range(self.n):
+            self.P[i] ^= (self.X[i,control] & self.Z[i,target] & (self.X[i,target] ^ self.Z[i,control] ^ True))
+        self.X[:, target] ^= self.X[:, control]
+        self.Z[:, control] ^= self.Z[:, target]
+
 
     def apply_clifford(self, other):
         """
@@ -77,6 +79,12 @@ class StabilizerTable:
 
         return full_table
     
+    def is_eq(self, other):
+        """
+        Checks if two stabilizer tables are equal.
+        """
+        return (self.X == other.X).all() and (self.Z == other.Z).all() and (self.P == other.P).all()
+    
     def to_string(self):
         """
         Converts the stabilizer table to a human-readable form including both stabilizers and destabilizers.
@@ -119,7 +127,6 @@ class StabilizerTable:
         stabilizers_section = "Stabilizers: " + " ".join(stabilizer_strings)
         destabilizers_section = "Destabilizers: " + " ".join(destabilizer_strings)
         return stabilizers_section + "\n" + destabilizers_section
-    
 
 
 
@@ -144,25 +151,25 @@ class CllifordSolver:
     def apply_hadamard(self, qubit,Hvar,d):
         # Swap X and Z for the given qubit
         for i in range(self.n):
-            self.constraints.append(Implies(Hvar, self.Xs[d+1][qubit][i] == self.Zs[d][qubit][i]))
-            self.constraints.append(Implies(Hvar, self.Zs[d+1][qubit][i] == self.Xs[d][qubit][i]))
-            self.constraints.append(Implies(Hvar, self.Ps[d+1][i] == self.Ps[d][qubit]^self.Xs[d+1][qubit][i]&self.Zs[d+1][qubit][i]))
-
-
-    def apply_cnot(self, control, target, CNOTvar,d):
-        # Apply CNOT gate from control to target
-        for i in range(self.n):
-            self.constraints.append(Implies(CNOTvar, self.Xs[d+1][target][i] == self.Xs[d][target][i]^self.Xs[d][control][i]))
-            self.constraints.append(Implies(CNOTvar, self.Xs[d+1][control][i] == self.Xs[d][control][i]))
-            self.constraints.append(Implies(CNOTvar, self.Zs[d+1][control][i] == self.Zs[d][target][i]^self.Zs[d][control][i]))
-            self.constraints.append(Implies(CNOTvar, self.Zs[d+1][target][i] == self.Zs[d][target][i]))
-            self.constraints.append(Implies(CNOTvar, self.Ps[d+1][i] == self.Ps[d][i]^(self.Xs[d][control][i]&self.Zs[d][target][i]&(self.Xs[d][target][i]^self.Zs[d][control][i]^1))))
+            self.constraints.append(Implies(Hvar, self.Ps[d+1][i] == self.Ps[d][i]^self.Xs[d][i][qubit]&self.Zs[d][i][qubit]))
+            self.constraints.append(Implies(Hvar, self.Xs[d+1][i][qubit] == self.Zs[d][i][qubit]))
+            self.constraints.append(Implies(Hvar, self.Zs[d+1][i][qubit]== self.Xs[d][i][qubit]))
 
     def apply_phase(self, qubit, PHASEvar,d):
         # S gate (phase gate) on a qubit
         for i in range(self.n):
-            self.constraints.append(Implies(PHASEvar, self.Zs[d+1][i][qubit] ==  self.Zs[d][i][qubit]^self.Xs[d][i][qubit]))
             self.constraints.append(Implies(PHASEvar, self.Ps[d+1][i] == self.Ps[d][i]^(self.Zs[d][i][qubit]&self.Xs[d][i][qubit])))
+            self.constraints.append(Implies(PHASEvar, self.Zs[d+1][i][qubit] ==  self.Zs[d][i][qubit]^self.Xs[d][i][qubit]))
+
+    def apply_cnot(self, control, target, CNOTvar,d):
+        # Apply CNOT gate from control to target
+        for i in range(self.n):
+            self.constraints.append(Implies(CNOTvar, self.Ps[d+1][i] == self.Ps[d][i]^(self.Xs[d][i][control]&self.Zs[d][i][target]&(self.Xs[d][i][target]^self.Zs[d][i][control]^1))))
+            self.constraints.append(Implies(CNOTvar, self.Xs[d+1][i][target] == self.Xs[d][i][target]^self.Xs[d][i][control]))
+            self.constraints.append(Implies(CNOTvar, self.Xs[d+1][i][control] == self.Xs[d][i][control]))
+            self.constraints.append(Implies(CNOTvar, self.Zs[d+1][i][control] == self.Zs[d][i][target]^self.Zs[d][i][control]))
+            self.constraints.append(Implies(CNOTvar, self.Zs[d+1][i][target] == self.Zs[d][i][target]))
+
     def define_variables(self):
         """
         Defines the variables used in the Clliford solver.
@@ -302,12 +309,16 @@ class CllifordProgram(list):
 
     def insert(self, index, item):
         super().insert(index, str(item))
-
+    def copy(self):
+        new_program = CllifordProgram(self.n_qubits)
+        for item in self:
+            new_program.append(item)
+        return new_program
     def extend(self, other):
         if isinstance(other, type(self)):
             super().extend(other)
         else:
-            super().extend(str(item) for item in other)
+            raise TypeError("Can only extend CllifordProgram with another type")
     def h(self, qubit):
         self.append(['H',qubit])
     def s(self, qubit):
@@ -315,7 +326,11 @@ class CllifordProgram(list):
     def sdg(self, qubit):
         for _ in range(3):
             self.append(['S',qubit])
-    
+    def cz(self, control, target):
+        self.append(['H',target])
+        self.append(['CNOT',(control,target)])
+        self.append(['H',target])
+        
     def x(self, qubit):
         ## X = HZH = HSSH
         self.append(['H',qubit])
@@ -358,61 +373,161 @@ class CllifordProgram(list):
         else:
             input_StabilizerTable.apply_clifford(output_StabilizerTable)
             return input_StabilizerTable
-   
+    def to_circuit(self):
+        """
+        This function converts the Clliford program to a circuit.
+        """
+        circuit = QuantumCircuit(self.n_qubits)
+        for gate in self:
+            if gate[0] == 'H':
+                circuit.h(gate[1])
+            elif gate[0] == 'S':
+                circuit.s(gate[1])
+            elif gate[0] == 'CNOT':
+                circuit.cx(gate[1][0], gate[1][1])
+            else:
+                raise ValueError("Invalid gate type: {}".format(gate[0]))
+        return circuit
+    
+    @classmethod
+    def from_circuit(cls, circuit: QuantumCircuit):
+        """
+        This function takes a circuit and converts it to a Clliford program.
+        """
+        program = cls(circuit.num_qubits)
+        for inst, qargs, cargs in circuit.data:
+            if inst.name == "h":
+                program.h(qargs[0].index)
+            elif inst.name == "s":
+                program.s(qargs[0].index)
+            elif inst.name == "sdg":
+                program.sdg(qargs[0].index)
+            elif inst.name == "x":
+                program.x(qargs[0].index)
+            elif inst.name == "y":
+                program.y(qargs[0].index)
+            elif inst.name == "z":
+                program.z(qargs[0].index)
+            elif inst.name == "cz":
+                program.cz(qargs[0].index, qargs[1].index)
+            elif inst.name == "cx" or inst.name == "cnot":
+                program.cnot(qargs[0].index, qargs[1].index)
+            else:
+                raise ValueError("Invalid gate type: {}".format(inst.name))
+        return program
 
-def generate_input_stabilizer_table(n_qubits:int,d_max:int = 10):
+def generate_input_stabilizer_table(n_qubits:int):
     """
     Generates a random Clliford program with the given number of qubits and depth.
     """
-    program = CllifordProgram(n_qubits)
-    for _ in range(d_max):
-        gate_type = np.random.choice(["H", "S", "CNOT"])
-        if gate_type == "H":
-            qubit = np.random.randint(n_qubits)
-            program.h(qubit)
-        elif gate_type == "S":
-            qubit = np.random.randint(n_qubits)
-            program.s(qubit)
-        elif gate_type == "CNOT":
-            control = np.random.randint(n_qubits)
-            target = np.random.randint(n_qubits)
-            while control == target:
-                target = np.random.randint(n_qubits)
-            program.cnot(control, target)
+    
+    circuit = random_clifford(n_qubits).to_circuit()
+    program = CllifordProgram.from_circuit(circuit)
     return program.output_stablizers()
 
-def generate_inout_stabilizer_tables(n_qubits:int,program:List,d_max:int = 10):
+def generate_inout_stabilizer_tables(n_qubits:int,program: CllifordProgram):
     """
     Generates the input and output stabilizer tables for the given Clliford program.
     """
-    input_stabilizer_table = generate_input_stabilizer_table(n_qubits,d_max)
+    input_stabilizer_table = generate_input_stabilizer_table(n_qubits)
     output_stabilizer_table = program.output_stablizers(input_stabilizer_table)
     return input_stabilizer_table, output_stabilizer_table
 
+def check_circuit_equality(circuit1: QuantumCircuit, circuit2: QuantumCircuit):
+    """
+    Checks if two circuits are equal.
+    """
+    if circuit1.num_qubits != circuit2.num_qubits:
+        return False
+    ## check their unitary matrix
+    backend = Aer.get_backend('statevector_simulator')
+    qc = circuit1.compose(circuit2.inverse())
+    job = execute(qc, backend)
+    output_state = job.result().get_statevector(qc)
+    print(output_state)
+    zeros = np.zeros(2**n_qubits)
+    zeros[0] = 1
+    ## calculate the fidelity between the two circuits
+    fidelity = np.abs(np.dot(output_state,zeros))**2
+    print(f'Fidelity: {fidelity}')
+    if 1-fidelity < 1e-3:
+        return True
+    else:
+        return False
+        
+    
+
 
 if __name__ == "__main__":
-    n_qubits = 3
-    d_max = 4
-    program = CllifordProgram(n_qubits)
-    program.h(0)
-    program.h(1)
-    # program.h(2)
-    program.cnot(0,1)
-    # # program.cnot(1,2)
-    # # program.cnot(0,2)
-    # program.y(0)
-    # program.x(1)
-    # program.cnot(1,0)
+    
+    
+    
+    
+            
+    # # check the stabilizer table is right
+
+    # from qiskit.quantum_info import random_clifford,StabilizerState,Clifford, StabilizerTable as qiskit_StabilizerTable
+    # qc = QuantumCircuit(2)
+    # qc.h(0)
+    # qc.s(0)
+    # qc.s(0)
+    # qc.cx(0,1)
+    # qc.h(0)
+    # qc.h(1)
+    # qc.cx(1,0)
+    
+    # # qc.cx(1, 0)
+    # # qc.reverse_bits()
+    # cliff = Clifford(qc)
+
+    #     # Print the Clifford
+    # print(cliff)
+
+    # # Print the Clifford stabilizer rows
+    # print(cliff.to_labels(mode="S"))
+    # stab = StabilizerState(qc)
+    # print(stab)
+    # stab_table = StabilizerTable(2)
+    # stab_table.apply_hadamard(0)
+    # stab_table.apply_phase(0)
+    # stab_table.apply_phase(0)
+    # stab_table.apply_cnot(0,1)
+    # stab_table.apply_hadamard(0)
+    # stab_table.apply_hadamard(1)
+    # stab_table.apply_cnot(1,0)
+    
+    
+    # # stab_table.apply_cnot(1,0)
+    # print(stab_table.table)
+    # print(stab_table.to_string())
+    # # exit()
+    # program = CllifordProgram.from_circuit(qc)
+    # outstablizer = program.output_stablizers()
+    # print(outstablizer.table)
+    # print(outstablizer.to_string())
+    # exit()
+    n_qubits = 2
+    d_max = 1
+    circuit = QuantumCircuit(n_qubits)
+    circuit.h(0)
+    circuit.s(1)
+    print(circuit)
+    program = CllifordProgram.from_circuit(circuit)
     wrong_program = program.copy()
-    # wrong_program.pop()
     wrong_program.pop()
+    # wrong_program.pop()
     correcter = CllifordCorrecter(n_qubits,d_max,wrong_program)
     for _ in range(8):
-        input_stabilizer_table, output_stabilizer_table = generate_inout_stabilizer_tables(n_qubits,program,d_max)
-        correcter.add_iout(input_stabilizer_table,output_stabilizer_table)
+        input_stabilizer_table, output_stabilizer_table = generate_inout_stabilizer_tables(n_qubits,program)
+        correcter.add_iout(input_stabilizer_table, output_stabilizer_table)
     fix_program = correcter.solve()
-    print(fix_program)
-    print(program[-1:])
+    print(fix_program.to_circuit())
+    wrong_program.extend(fix_program)
+    # print(wrong_program)
+    fix_circuit = wrong_program.to_circuit()
+    print(fix_circuit)
+    print(circuit)
+    print(check_circuit_equality(circuit, fix_circuit))
 
     
 

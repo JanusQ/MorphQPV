@@ -1,9 +1,10 @@
-from qiskit import QuantumCircuit, Aer, transpile, execute
+from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import Operator, state_fidelity
 from qiskit.circuit.library import HGate, SGate, SdgGate, CXGate, CZGate, IGate, XGate, YGate, ZGate, TGate, TdgGate,RXGate, RYGate, RZGate, CRXGate
 from qiskit.quantum_info import Clifford,random_clifford
 from qiskit.circuit import Parameter
 import numpy as np
+from qiskit_aer import Aer,AerSimulator,StatevectorSimulator
 import random
 from clliford import CllifordCorrecter,generate_inout_stabilizer_tables,CllifordProgram
 from tqdm import tqdm
@@ -53,11 +54,6 @@ def replace_param_gates_with_clifford(circuit):
             new_circuit.append(inst, qargs, cargs)
     return new_circuit
 
-def calculate_unitary(circuit):
-    backend = Aer.get_backend('unitary_simulator')
-    job = execute(circuit, backend)
-    unitary = job.result().get_unitary(circuit)
-    return unitary
 
 def generate_input_states(num_qubits, num_states=8):
     states = []
@@ -109,7 +105,7 @@ def replace_clifford_with_param_gates(structure, param_gates):
     return structure
 
 def optimize_parameters(circuit, input_states, correct_output_states, max_iterations=100):
-    from qiskit.algorithms.optimizers import COBYLA
+    from qiskit_algorithms.optimizers import COBYLA,ADAM
     
     params = circuit.parameters
     param_dict = {param: random.uniform(0, 2 * np.pi) for param in params}
@@ -121,19 +117,19 @@ def optimize_parameters(circuit, input_states, correct_output_states, max_iterat
         for input_state_idx, correct_output in correct_output_states.items():
             output_state = apply_circuit(bound_circuit, input_states[input_state_idx])
             distance += calculate_distance(output_state, correct_output)
-        return distance
+        return distance/len(correct_output_states)
     
-    iteration_count = 0
-    pbar = tqdm(total=max_iterations)
-    def callback(params):
-        nonlocal iteration_count
-        nonlocal pbar
-        iteration_count += 1
-        if iteration_count % 10 == 0:
-            pbar.update(10)
-            pbar.set_description(f"objective: {objective_function(params)}")
+    # iteration_count = 0
+    # pbar = tqdm(total=max_iterations)
+    # def callback(params):
+    #     nonlocal iteration_count
+    #     nonlocal pbar
+    #     iteration_count += 1
+    #     if iteration_count % 10 == 0:
+    #         pbar.update(10)
+    #         pbar.set_description(f"objective: {objective_function(params)}")
     
-    optimizer = COBYLA(maxiter=max_iterations, callback=callback)
+    optimizer = COBYLA()
     initial_values = list(param_dict.values())
     result = optimizer.minimize(objective_function, initial_values)
     optimized_param_dict = dict(zip(params, result.x))
@@ -225,21 +221,21 @@ correct_circuit.cx(1, 0)
 print("Correct Circuit:")
 print(correct_circuit)
 
-bugged_circuit = generate_bugged_circuit(correct_circuit, error_rate=0.3)
+bugged_circuit = generate_bugged_circuit(correct_circuit.copy(), error_rate=0.3)
 print("Bugged Circuit:")
 print(bugged_circuit)
 print("_"*10+'start bug fixing'+"_"*10)
 clifford_circuit = replace_param_gates_with_clifford(bugged_circuit)
 print("Clifford Circuit:")
 print(clifford_circuit)
+print('original circuit')
+print(correct_circuit)
 correct_clliford = replace_param_gates_with_clifford(correct_circuit)
 input_states = generate_input_states(2)
 correct_output_states = {i: apply_circuit(correct_circuit, state) for i,state in enumerate(input_states)}
 
-fix_structure = clliford_repair(clifford_circuit, correct_clliford, 8, 2)
-bugged_circuit.compose(fix_structure, inplace=True)
-print("Best Structure:")
-print(bugged_circuit)
+# fix_structure = clliford_repair(clifford_circuit, correct_clliford, 8, 2)
+fix_structure = correct_clliford
 
 param_gates = {
     'rx': correct_circuit.data[0][0],  # Assuming RX is the first gate in the original correct circuit
@@ -247,7 +243,7 @@ param_gates = {
     'rz': correct_circuit.data[2][0]   # Modify as needed for actual gates in the circuit
 }
 
-optimized_structure = replace_clifford_with_param_gates(bugged_circuit, param_gates)
+optimized_structure = replace_clifford_with_param_gates(fix_structure, param_gates)
 optimized_circuit = optimize_parameters(optimized_structure,input_states, correct_output_states)
 
 print("Optimized Circuit:")

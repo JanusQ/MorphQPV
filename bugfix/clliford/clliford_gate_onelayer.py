@@ -151,17 +151,17 @@ class CllifordCorrecter:
                 self.constraints.append( self.Z[i][j] ==  BoolVal(bool(stabilizer_table.Z[i][j])))
             self.constraints.append( self.P[i] == BoolVal(bool(stabilizer_table.P[i])))
     
-    def solve(self, timeout = 10000):
+    def solve(self):
         """
         Solves the Clliford solver.
         """
-        self.unique_gate()
+        # self.unique_gate()
         self.inverse_cancel()
         s = Solver()
         for c in self.constraints:
             s.add(c)
         
-        s.set("timeout", timeout)
+        # s.set("timeout", 10000)
         print("Solving...")
         print(s.check())
         fix_program = CllifordProgram(self.n)
@@ -240,37 +240,3 @@ class CllifordCorrecter:
             return None
 
 
-
-if __name__ == "__main__":
-    from clliford import generate_inout_stabilizer_tables
-    from qiskit import QuantumCircuit
-    from qiskit.quantum_info import Clifford,random_clifford
-    n_qubits = 5
-    circuit = random_clifford(n_qubits).to_circuit()
-    circuit.data = circuit.data[:10]
-    program = CllifordProgram.from_circuit(circuit)
-    # program = program[:10]
-    print('test program\n',program.to_circuit())
-    correcter = CllifordCorrecter(n_qubits,len(program))
-    inputs, outputs = [],[]
-    for _ in range(1):
-        input_stabilizer_table, output_stabilizer_table = generate_inout_stabilizer_tables(n_qubits,program)
-        inputs.append(input_stabilizer_table)
-        outputs.append(output_stabilizer_table)
-        correcter.add_iout(input_stabilizer_table,output_stabilizer_table)
-    find_program = correcter.solve()
-    print('find program\n',find_program.to_circuit())
-    for input_stabilizer_table, output_stabilizer_table in zip(inputs,outputs):
-        predict_out = find_program.output_stablizers(input_stabilizer_table)
-        assert predict_out.is_eq(output_stabilizer_table)
-
-    
-
-
-
-
-
-
-
-
-    

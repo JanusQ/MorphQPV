@@ -6,8 +6,10 @@ from qiskit.circuit import Parameter
 import numpy as np
 from qiskit_aer import Aer,AerSimulator,StatevectorSimulator
 import random
-from clliford import CllifordCorrecter,generate_inout_stabilizer_tables,CllifordProgram
 from tqdm import tqdm
+
+from bugfix.clliford.clliford_gate_variables import CllifordCorrecter
+from bugfix.clliford.utills import CllifordProgram, generate_inout_stabilizer_tables
 def generate_bugged_circuit(correct_circuit, error_rate=0.1):
     bugged_circuit = correct_circuit.copy()
     num_gates = len(correct_circuit.data)
@@ -208,43 +210,43 @@ def clliford_repair(circuit: QuantumCircuit,  right_circuit: QuantumCircuit, inp
     # wrong_program.extend(fix_program)
     return fix_program.to_circuit()
 
-    
-# Example usage
-correct_circuit = QuantumCircuit(2)
-param = 1.4
-correct_circuit.rx(param, 0)
-correct_circuit.rz(param, 1)
-correct_circuit.cz(0, 1)
-correct_circuit.rx(param, 0)
-correct_circuit.rz(param, 1)
-correct_circuit.cx(1, 0)
-print("Correct Circuit:")
-print(correct_circuit)
+if __name__ == "__main__":
+    # Example usage
+    correct_circuit = QuantumCircuit(2)
+    param = 1.4
+    correct_circuit.rx(param, 0)
+    correct_circuit.rz(param, 1)
+    correct_circuit.cz(0, 1)
+    correct_circuit.rx(param, 0)
+    correct_circuit.rz(param, 1)
+    correct_circuit.cx(1, 0)
+    print("Correct Circuit:")
+    print(correct_circuit)
 
-bugged_circuit = generate_bugged_circuit(correct_circuit.copy(), error_rate=0.3)
-print("Bugged Circuit:")
-print(bugged_circuit)
-print("_"*10+'start bug fixing'+"_"*10)
-clifford_circuit = replace_param_gates_with_clifford(bugged_circuit)
-print("Clifford Circuit:")
-print(clifford_circuit)
-print('original circuit')
-print(correct_circuit)
-correct_clliford = replace_param_gates_with_clifford(correct_circuit)
-input_states = generate_input_states(2)
-correct_output_states = {i: apply_circuit(correct_circuit, state) for i,state in enumerate(input_states)}
+    bugged_circuit = generate_bugged_circuit(correct_circuit.copy(), error_rate=0.3)
+    print("Bugged Circuit:")
+    print(bugged_circuit)
+    print("_"*10+'start bug fixing'+"_"*10)
+    clifford_circuit = replace_param_gates_with_clifford(bugged_circuit)
+    print("Clifford Circuit:")
+    print(clifford_circuit)
+    print('original circuit')
+    print(correct_circuit)
+    correct_clliford = replace_param_gates_with_clifford(correct_circuit)
+    input_states = generate_input_states(2)
+    correct_output_states = {i: apply_circuit(correct_circuit, state) for i,state in enumerate(input_states)}
 
-# fix_structure = clliford_repair(clifford_circuit, correct_clliford, 8, 2)
-fix_structure = correct_clliford
+    # fix_structure = clliford_repair(clifford_circuit, correct_clliford, 8, 2)
+    fix_structure = correct_clliford
 
-param_gates = {
-    'rx': correct_circuit.data[0][0],  # Assuming RX is the first gate in the original correct circuit
-    'ry': correct_circuit.data[1][0],  # Assuming RY is the second gate in the original correct circuit
-    'rz': correct_circuit.data[2][0]   # Modify as needed for actual gates in the circuit
-}
+    param_gates = {
+        'rx': correct_circuit.data[0][0],  # Assuming RX is the first gate in the original correct circuit
+        'ry': correct_circuit.data[1][0],  # Assuming RY is the second gate in the original correct circuit
+        'rz': correct_circuit.data[2][0]   # Modify as needed for actual gates in the circuit
+    }
 
-optimized_structure = replace_clifford_with_param_gates(fix_structure, param_gates)
-optimized_circuit = optimize_parameters(optimized_structure,input_states, correct_output_states)
+    optimized_structure = replace_clifford_with_param_gates(fix_structure, param_gates)
+    optimized_circuit = optimize_parameters(optimized_structure,input_states, correct_output_states)
 
-print("Optimized Circuit:")
-print(optimized_circuit)
+    print("Optimized Circuit:")
+    print(optimized_circuit)

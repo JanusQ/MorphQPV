@@ -5,15 +5,17 @@ from jax import numpy as jnp
 from jax import grad, jit
 import numpy as np
 import optax
+from jax.config import config
 
-n_wires = 3
-
+config.update("jax_enable_x64", True)
 
 class CircuitTape:
     def __init__(self, *args, **kwargs):
         self.circuit_data = []
-        return
-
+        self.n_qubits: int = None
+        self.n_params: int = None
+        self.n_qubits: int = None
+        
     def update(self):
         return
 
@@ -42,7 +44,8 @@ class CircuitTape:
             qubits (list): the qubits to apply the gate
             params (list): the rotation angles for each qubit, unit: rad
         """
-        self.circuit_data.append({"name": "rx", "qubits": qubits, "params": params})
+        self.circuit_data.append(
+            {"name": "rx", "qubits": qubits, "params": params})
         return
 
     def ry(self, qubits: list, params: list):
@@ -52,7 +55,8 @@ class CircuitTape:
             qubits (list): the qubits to apply the gate
             params (list): the rotation angles for each qubit, unit: rad
         """
-        self.circuit_data.append({"name": "ry", "qubits": qubits, "params": params})
+        self.circuit_data.append(
+            {"name": "ry", "qubits": qubits, "params": params})
         return
 
     def rz(self, qubits: list, params: list):
@@ -62,7 +66,8 @@ class CircuitTape:
             qubits (list): the qubits to apply the gate
             params (list): the rotation angle
         """
-        self.circuit_data.append({"name": "rz", "qubits": qubits, "params": params})
+        self.circuit_data.append(
+            {"name": "rz", "qubits": qubits, "params": params})
         return
 
     def s(self, qubits: list):
@@ -126,7 +131,8 @@ class CircuitTape:
             qubits (list): the qubits to apply the gate
             params (list): the phase angles for each qubit, unit: rad
         """
-        self.circuit_data.append({"name": "u1", "qubits": qubits, "params": params})
+        self.circuit_data.append(
+            {"name": "u1", "qubits": qubits, "params": params})
         return
 
     def u2(self, qubits: list, params: list):
@@ -136,11 +142,13 @@ class CircuitTape:
             qubits (list): the qubits to apply the gate
             params (list): the [phi, lambda] angles for each qubit, unit: rad
         """
-        self.circuit_data.append({"name": "u2", "qubits": qubits, "params": params})
+        self.circuit_data.append(
+            {"name": "u2", "qubits": qubits, "params": params})
         return
 
     def u3(self, qubits, params):
-        self.circuit_data.append({"name": "u3", "qubits": qubits, "params": params})
+        self.circuit_data.append(
+            {"name": "u3", "qubits": qubits, "params": params})
         return
 
     def unitary(self, qubits, params):
@@ -159,11 +167,38 @@ class CircuitTape:
 
     def to_qiskit_circuit(self):
         """convert the circuit_data to qiskit circuit"""
-        return
+        raise NotImplementedError()
 
     def from_qiskit_circuit(self, qiskit_circuit):
         """convert the qiskit circuit to circuit_data"""
-        return
+        raise NotImplementedError()
+
+    @classmethod
+    def from_clifford_program(cls, clifford_program):
+        """convert the clifford program to circuit_data"""
+        n_qubits = clifford_program.n_qubits
+        tape: CircuitTape = cls()
+        tape.n_qubits = n_qubits
+        tape.n_params = len(clifford_program)
+
+        for inst, qubits in clifford_program:
+            if inst.lower() == "x":
+                tape.x([qubits])
+            elif inst.lower() == "y":
+                tape.y([qubits])
+            elif inst.lower() == "z":
+                tape.z([qubits])
+            elif inst.lower() == "h":
+                tape.h([qubits])
+            elif inst.lower() == "s":
+                tape.s([qubits])
+            elif inst.lower() == "cnot":
+                tape.cnot(qubits)
+            elif inst.lower() == "cx":
+                tape.cx(qubits)
+            else:
+                raise ValueError("Invalid gate type: {}".format(inst.name))
+        return tape
 
     def to_layer_circuit(self, circuit_data):
         """convert the circuit_data to layer circuit"""
@@ -185,14 +220,26 @@ class CircuitTape:
         clifford_circuit = []
         for gate in circuit_data:
             if gate["name"] == "rx":
-                clifford_circuit.append({"name": "x", "qubits": gate["qubits"]})
+                clifford_circuit.append(
+                    {"name": "x", "qubits": gate["qubits"]})
             elif gate["name"] == "ry":
-                clifford_circuit.append({"name": "y", "qubits": gate["qubits"]})
+                clifford_circuit.append(
+                    {"name": "y", "qubits": gate["qubits"]})
             elif gate["name"] == "rz":
-                clifford_circuit.append({"name": "z", "qubits": gate["qubits"]})
+                clifford_circuit.append(
+                    {"name": "z", "qubits": gate["qubits"]})
             else:
                 clifford_circuit.append(gate)
         return clifford_circuit
+
+    def gate_paramize_size(self):
+        """gate paramize size"""
+        num_params = 0
+
+        for gate in self.circuit_data:
+            if gate["name"] in ['rx', 'x', 'ry', 'y', 'rz', 'z']:
+                num_params += 1
+        return num_params
 
     def gate_paramize(self, params):
         """parameterize the gates"""
@@ -201,22 +248,22 @@ class CircuitTape:
             if gate["name"] == "rx" or gate["name"] == "x":
                 # print('rx')
                 qml.RX(params[num_params], wires=gate["qubits"][0])
-                num_params += 1
+
             elif gate["name"] == "ry" or gate["name"] == "y":
                 # print('ry')
                 qml.RY(params[num_params], wires=gate["qubits"][0])
-                num_params += 1
 
             elif gate["name"] == "rz" or gate["name"] == "z":
                 # print('rz')
-
                 qml.RZ(params[num_params], wires=gate["qubits"][0])
-                num_params += 1
 
             else:
                 self.to_pennylane_gate(gate)
+                num_params -= 1
 
-        return num_params
+            num_params += 1
+
+        return params
 
     def gate_params(self):
         """parameterize the gates"""
@@ -277,11 +324,15 @@ class CircuitTape:
 
         elif gate["name"] == "y":
             qml.PauliY(wires=gate["qubits"][0])
+
         elif gate["name"] == "z":
             qml.PauliZ(wires=gate["qubits"][0])
 
         elif gate["name"] == "h":
             qml.Hadamard(wires=gate["qubits"][0])
+
+        elif gate["name"] == "s":
+            qml.S(wires=gate["qubits"][0])
 
         elif gate["name"] == "rx":
             qml.RX(gate["params"][0], wires=gate["qubits"][0])
@@ -311,7 +362,8 @@ class CircuitTape:
             qml.U1(gate["params"][0], wires=gate["qubits"][0])
 
         elif gate["name"] == "u2":
-            qml.U2(gate["params"][0], gate["params"][1], wires=gate["qubits"][0])
+            qml.U2(gate["params"][0], gate["params"]
+                   [1], wires=gate["qubits"][0])
 
         elif gate["name"] == "u3":
             qml.U3(
@@ -333,49 +385,6 @@ class CircuitTape:
             raise ValueError("Gate not recognized")
 
 
-circuit_tape = CircuitTape()
-circuit_tape.h([0])
-circuit_tape.h([1])
-circuit_tape.cx([0, 1])
-circuit_tape.x([0])
-circuit_tape.y([1])
-circuit_tape.z([2])
-circuit_tape.rx([0], [0.5])
-circuit_tape.cx([1, 0])
-
-dev = qml.device("default.qubit", wires=n_wires)
-
-
-@qml.qnode(dev)
-def target_circuit(input_state):
-    """Quantum circuit ansatz"""
-
-    qml.QubitStateVector(input_state, wires=range(n_wires))
-    circuit_tape.to_pennylane_circuit()
-    # we use a sum of local Z's as an observable since a
-    # local Z would only be affected by params on that qubit.
-    # return qml.state()
-    return qml.probs()
-
-
-@qml.qnode(dev)
-def parameterized_circuit(input_state, params):
-    """Quantum circuit ansatz"""
-
-    qml.QubitStateVector(input_state, wires=range(n_wires))
-    circuit_tape.gate_paramize(params)
-    # we use a sum of local Z's as an observable since a
-    # local Z would only be affected by params on that qubit.
-    # return qml.state()
-    return qml.probs()
-
-
-from random import randint
-
-num_params = circuit_tape.gate_paramize(jnp.ones(9))
-opt = optax.adam(learning_rate=0.1)
-
-
 
 def generate_input_states(num_qubits, num_states=8):
     states = []
@@ -391,62 +400,122 @@ def generate_input_states(num_qubits, num_states=8):
     return states
 
 
-    
+if __name__ == "__main__":
+    def target_circuit(input_state, n_wires):
+        """Quantum circuit ansatz"""
 
-target_output_states = []
-input_states = generate_input_states(n_wires)
-for input_state in input_states:
-    target_output_states.append(target_circuit(input_state))
-
-    
-# for input_state, target_state in zip(input_states, target_output_states):
-#     parm_output_state = parameterized_circuit(input_state, params)
-#     output_state = target_circuit(input_state)
-    
-#     print(np.round(parm_output_state, 2))
-#     print(np.round(output_state, 2))
-#     # print(np.round(output_state - parm_output_state, 2))
-#     print(jnp.mean(jnp.abs(parm_output_state - output_state)))
-#     print()
-
-@jax.jit
-def loss_fn(params):
-    loss = 0
-
-    for input_state, target_state in zip(input_states, target_output_states):
-        output_state = parameterized_circuit(input_state, params)
-        loss += jnp.mean(jnp.abs(output_state - target_state))
-    return loss
+        qml.QubitStateVector(input_state, wires=range(n_wires))
+        circuit_tape.to_pennylane_circuit()
+        # we use a sum of local Z's as an observable since a
+        # local Z would only be affected by params on that qubit.
+        # return qml.state()
+        return qml.probs()
 
 
-def update_step(
-    opt,
-    params,
-    opt_state,
-):
-    loss_val, grads = jax.value_and_grad(loss_fn)(params)
-    updates, opt_state = opt.update(grads, opt_state)
-    params = optax.apply_updates(params, updates)
-    return params, opt_state, loss_val
+    def parameterized_circuit(input_state, params):
+        """Quantum circuit ansatz"""
+
+        qml.QubitStateVector(input_state, wires=range(n_wires))
+        circuit_tape.gate_paramize(params)
+        # we use a sum of local Z's as an observable since a
+        # local Z would only be affected by params on that qubit.
+        # return qml.state()
+        return qml.probs()
+
+    @jax.jit
+    def loss_fn(params, n_wires):
+        loss = 0
+        dev = qml.device("default.qubit", wires=n_wires)
+
+        target_output_states = []
+        input_states = generate_input_states(n_wires)
+
+        for input_state in input_states:
+            target_output_states.append(target_circuit(input_state))
+
+        for input_state, target_state in zip(input_states, target_output_states):
+            output_state = qml.QNode(parameterized_circuit, dev)(input_state, params)
+            loss += jnp.mean(jnp.abs(output_state - target_state))
+        return loss
 
 
-loss_history = []
-from tqdm import tqdm
+    def update_step(
+        opt,
+        params,
+        opt_state,
+        n_wires
+    ):
+        @jax.jit
+        def loss_fn(params, input_states, target_output_states):
+            loss = 0
+            dev = qml.device("default.qubit", wires=n_wires)
 
-# params = jnp.zeros(num_params)
-# params = jax.random.normal(jax.random.PRNGKey(randint(0, 200)), (num_params,))
-params = jax.random.uniform(jax.random.PRNGKey(randint(0, 200)), (num_params,), minval = 0, maxval= jnp.pi * 2)
-# params = jnp.array(circuit_tape.gate_params())
-print("num_params:", num_params)
-opt_state = opt.init(params)
+            for input_state, target_state in zip(input_states, target_output_states):
+                output_state = qml.QNode(
+                    parameterized_circuit, dev)(input_state, params)
+                loss += jnp.mean(jnp.abs(output_state - target_state))
+            return loss
 
-with tqdm(total=1000) as pbar:
-    for i in range(1000):
-        params, opt_state, loss_val = update_step(opt, params, opt_state)
-        pbar.update(1)
-        loss_val = round(float(loss_val), 7)
-        pbar.set_description(f"Loss: {loss_val}")
-        loss_history.append(loss_val)
+        input_states = generate_input_states(n_wires)
         
-print(params)
-print(loss_history)
+        target_output_states = []
+        for input_state in input_states:
+            target_output_states.append(target_circuit(input_state))
+
+        loss_val, grads = jax.value_and_grad(loss_fn)(params)
+        updates, opt_state = opt.update(grads, opt_state)
+        params = optax.apply_updates(params, updates)
+        return params, opt_state, loss_val
+
+    n_wires = 3
+    circuit_tape = CircuitTape()
+    circuit_tape.h([0])
+    circuit_tape.h([1])
+    circuit_tape.cx([0, 1])
+    circuit_tape.x([0])
+    circuit_tape.y([1])
+    circuit_tape.z([2])
+    circuit_tape.rx([0], [0.5])
+    circuit_tape.cx([1, 0])
+
+    from random import randint
+
+    circuit_tape.gate_paramize(jnp.ones(9))
+    opt = optax.adam(learning_rate=0.1)
+
+    # target_output_states = []
+    # input_states = generate_input_states(n_wires)
+    # for input_state in input_states:
+    #     target_output_states.append(target_circuit(input_state))
+
+    # for input_state, target_state in zip(input_states, target_output_states):
+    #     parm_output_state = parameterized_circuit(input_state, params)
+    #     output_state = target_circuit(input_state)
+
+    #     print(np.round(parm_output_state, 2))
+    #     print(np.round(output_state, 2))
+    #     # print(np.round(output_state - parm_output_state, 2))
+    #     print(jnp.mean(jnp.abs(parm_output_state - output_state)))
+    #     print()
+
+    loss_history = []
+    from tqdm import tqdm
+
+    # params = jnp.zeros(num_params)
+    # params = jax.random.normal(jax.random.PRNGKey(randint(0, 200)), (num_params,))
+    params = jax.random.uniform(jax.random.PRNGKey(
+        randint(0, 200)), (num_params,), minval=0, maxval=jnp.pi * 2)
+    # params = jnp.array(circuit_tape.gate_params())
+    print("num_params:", num_params)
+    opt_state = opt.init(params)
+
+    with tqdm(total=1000) as pbar:
+        for i in range(1000):
+            params, opt_state, loss_val = update_step(
+                opt, params, opt_state, n_wires)
+            pbar.update(1)
+            loss_val = round(float(loss_val), 7)
+            pbar.set_description(f"Loss: {loss_val}")
+            loss_history.append(loss_val)
+    print(params)
+    print(loss_history)

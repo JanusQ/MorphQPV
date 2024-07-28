@@ -4,16 +4,14 @@ if __name__ == "__main__":
     from clliford.clliford_gate_variables import CllifordCorrecter
     from qiskit import QuantumCircuit
     from qiskit.quantum_info import Clifford,random_clifford
-    n_qubits = 3
-    circuit = random_clifford(n_qubits).to_circuit()
-    circuit.data = circuit.data[:10]
     ## 测试要逼近的电路
-    program = CllifordProgram.from_circuit(circuit)
+    n_qubits = 40
+    program = CllifordProgram.random_clifford_program(40,depth=1)
     print('test program\n',program.to_circuit())
-    correcter = CllifordCorrecter(n_qubits,len(program))
+    correcter = CllifordCorrecter(n_qubits,1)
     inputs, outputs = [],[]
     ## 生成输入和输出
-    for _ in range(30):
+    for _ in range(50):
         input_stabilizer_table, output_stabilizer_table = generate_inout_stabilizer_tables(n_qubits,program)
         inputs.append(input_stabilizer_table)
         correcter.add_iout(input_stabilizer_table,output_stabilizer_table)

@@ -4,12 +4,14 @@ from .utills import StabilizerTable,CllifordProgram
 
 
 class CllifordCorrecter:
-    def __init__(self, n_qubits,d_max:int = 4):
+    def __init__(self, n_qubits,d_max:int = 4,time_out_eff:int = 10):
         self.n = n_qubits
         self.d_max = d_max
         self.Svars, self.Hvars,self.Ivars, self.CNOTvars = self.define_variables()
         self.constraints = []
+        self.soft_constraints = []
         self.iout_idx = 0
+        self.time_out_eff = time_out_eff
     def define_variables(self):
         """
         Defines the variables used in the Clliford solver.
@@ -147,29 +149,34 @@ class CllifordCorrecter:
         """
         for i in range(self.n):
             for j in range(self.n):
-                self.constraints.append( self.X[i][j] ==  BoolVal(bool(stabilizer_table.X[i][j])))
-                self.constraints.append( self.Z[i][j] ==  BoolVal(bool(stabilizer_table.Z[i][j])))
-            self.constraints.append( self.P[i] == BoolVal(bool(stabilizer_table.P[i])))
+                self.soft_constraints.append( self.X[i][j] ==  BoolVal(bool(stabilizer_table.X[i][j])))
+                self.soft_constraints.append( self.Z[i][j] ==  BoolVal(bool(stabilizer_table.Z[i][j])))
+            self.soft_constraints.append( self.P[i] == BoolVal(bool(stabilizer_table.P[i])))
     
-    def solve(self, timeout = 10000):
+    def solve(self):
         """
         Solves the Clliford solver.
         """
         self.unique_gate()
         self.inverse_cancel()
-        s = Solver()
+        s = Optimize()
         for c in self.constraints:
             s.add(c)
-        
-        s.set("timeout", timeout)
+        for c in self.soft_constraints:
+            s.add_soft(c)
+        s.set("timeout", self.time_out_eff*self.n**5)
         print("Solving...")
         print(s.check())
         fix_program = CllifordProgram(self.n)
         # print(s.model())
-        if s.check() == unknown:
-            print(s.reason_unknown())
-        elif s.check() == sat:
+        if s.check() == unknown or s.check() == sat:
             m = s.model()
+            ## evaluate the model
+            satisfied_num = 0
+            for cons_soft in self.soft_constraints:
+                if m.evaluate(cons_soft):
+                    satisfied_num += 1
+            print("Satisfied soft constraints portion(%): ", (satisfied_num/len(self.soft_constraints))**100)
             for d in range(self.d_max):
                 for q in range(self.n):
                     repeat = 0
@@ -251,7 +258,7 @@ if __name__ == "__main__":
     program = CllifordProgram.from_circuit(circuit)
     # program = program[:10]
     print('test program\n',program.to_circuit())
-    correcter = CllifordCorrecter(n_qubits,len(program))
+    correcter = CllifordCorrecter(n_qubits,3)
     inputs, outputs = [],[]
     for _ in range(1):
         input_stabilizer_table, output_stabilizer_table = generate_inout_stabilizer_tables(n_qubits,program)

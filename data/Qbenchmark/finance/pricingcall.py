@@ -13,12 +13,12 @@ if TYPE_CHECKING:  # pragma: no cover
     from qiskit import QuantumCircuit
 
 
-def create_circuit(num_uncertainty_qubits: int = 5) -> QuantumCircuit:
+def create_circuit(n_uncertainty_qubits: int = 5) -> QuantumCircuit:
     """Returns a quantum circuit of Iterative Amplitude Estimation applied to a problem instance of
     pricing call options.
 
     Keyword arguments:
-    num_uncertainty_qubits -- number of qubits to measure uncertainty
+    n_uncertainty_qubits -- number of qubits to measure uncertainty
     """
     # parameters for considered random distribution
     s = 2.0  # initial spot price
@@ -38,7 +38,7 @@ def create_circuit(num_uncertainty_qubits: int = 5) -> QuantumCircuit:
 
     # construct A operator for QAE for the payoff function by
     # composing the uncertainty model and the objective
-    uncertainty_model = LogNormalDistribution(num_uncertainty_qubits, mu=mu, sigma=sigma**2, bounds=(low, high))
+    uncertainty_model = LogNormalDistribution(n_uncertainty_qubits, mu=mu, sigma=sigma**2, bounds=(low, high))
 
     # set the strike price (should be within the low and the high value of the uncertainty)
     strike_price = 1.896
@@ -47,7 +47,7 @@ def create_circuit(num_uncertainty_qubits: int = 5) -> QuantumCircuit:
     c_approx = 0.25
 
     european_call_pricing = EuropeanCallPricing(
-        num_state_qubits=num_uncertainty_qubits,
+        n_state_qubits=n_uncertainty_qubits,
         strike_price=strike_price,
         rescaling_factor=c_approx,
         bounds=(low, high),

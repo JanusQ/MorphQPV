@@ -235,12 +235,12 @@ class Shor:
         iqft = QFT(len(up_qreg)).inverse().to_gate()
         circuit.append(iqft, up_qreg)
         return circuit
-    def create_circuit(self,num_to_be_factorized: int, a: int = 2) -> QuantumCircuit:
+    def create_circuit(self,n_to_be_factorized: int, a: int = 2) -> QuantumCircuit:
         """Returns a quantum circuit implementing the Shor's algorithm.
 
         Params:
-        num_to_be_factorized -- number which shall be factorized
-        a -- any integer that satisfies 1 < a < num_to_be_factorized and gcd(a, num_to_be_factorized) = 1
+        n_to_be_factorized -- number which shall be factorized
+        a -- any integer that satisfies 1 < a < n_to_be_factorized and gcd(a, n_to_be_factorized) = 1
 
         Return:
             circuit
@@ -249,7 +249,7 @@ class Shor:
             https://en.wikipedia.org/wiki/Shor%27s_algorithm
         """
 
-        qc = self.construct_circuit(num_to_be_factorized, a)
+        qc = self.construct_circuit(n_to_be_factorized, a)
         qc.measure_all()
-        qc.name = "shor_" + str(num_to_be_factorized) + "_" + str(a)
+        qc.name = "shor_" + str(n_to_be_factorized) + "_" + str(a)
         return qc

@@ -16,11 +16,11 @@ def conv_circuit(params):
     target.rz(np.pi / 2, 0)
     return target
 
-def conv_layer(num_qubits, param_prefix):
-    qc = QuantumCircuit(num_qubits, name="Convolutional Layer")
-    qubits = list(range(num_qubits))
+def conv_layer(n_qubits, param_prefix):
+    qc = QuantumCircuit(n_qubits, name="Convolutional Layer")
+    qubits = list(range(n_qubits))
     param_index = 0
-    params = ParameterVector(param_prefix, length=num_qubits * 3)
+    params = ParameterVector(param_prefix, length=n_qubits * 3)
     for q1, q2 in zip(qubits[0::2], qubits[1::2]):
         qc = qc.compose(conv_circuit(params[param_index : (param_index + 3)]), [q1, q2])
         
@@ -32,7 +32,7 @@ def conv_layer(num_qubits, param_prefix):
 
     qc_inst = qc.to_instruction()
 
-    qc = QuantumCircuit(num_qubits)
+    qc = QuantumCircuit(n_qubits)
     qc.append(qc_inst, qubits)
     return qc
 
@@ -48,18 +48,18 @@ def pool_circuit(params):
     return target
 
 def pool_layer(sources, sinks, param_prefix):
-    num_qubits = len(sources) + len(sinks)
-    qc = QuantumCircuit(num_qubits, name="Pooling Layer")
+    n_qubits = len(sources) + len(sinks)
+    qc = QuantumCircuit(n_qubits, name="Pooling Layer")
     param_index = 0
-    params = ParameterVector(param_prefix, length=num_qubits // 2 * 3)
+    params = ParameterVector(param_prefix, length=n_qubits // 2 * 3)
     for source, sink in zip(sources, sinks):
         qc = qc.compose(pool_circuit(params[param_index : (param_index + 3)]), [source, sink])
         param_index += 3
 
     qc_inst = qc.to_instruction()
 
-    qc = QuantumCircuit(num_qubits)
-    qc.append(qc_inst, range(num_qubits))
+    qc = QuantumCircuit(n_qubits)
+    qc.append(qc_inst, range(n_qubits))
     return qc
 
 from qiskit.circuit.library import ZFeatureMap

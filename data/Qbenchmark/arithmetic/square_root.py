@@ -8,7 +8,7 @@ class SquareRoot(QuantumCircuit):
         self.initialize()
     
     def initialize(self):
-        n = self.num_qubits // 3
+        n = self.n_qubits // 3
         N = 2 ** n
         
         nstep = math.floor((pi / 4) * math.sqrt(N))

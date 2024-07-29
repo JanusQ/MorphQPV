@@ -125,8 +125,8 @@ def get_all(bit):
         all.append(i_bin)
     return all
 
-def execute_quantum_program(inputID, outputID, num_qubit, i, module_name):
-    q = QuantumRegister(num_qubit)
+def execute_quantum_program(inputID, outputID, n_qubit, i, module_name):
+    q = QuantumRegister(n_qubit)
     c = ClassicalRegister(len(outputID))
     qc = QuantumCircuit(q, c)
     for j in range(len(inputID)):
@@ -199,7 +199,7 @@ def process_bar(percent, start_str='', end_str='', total_length=0):
     bar = '\r' + start_str + bar.ljust(total_length) + ' {:0>4.1f}%|'.format(percent*100) + end_str
     print(bar, end='', flush=True)
 
-def input_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder):
+def input_coverage(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder):
     global T2
     #resultFolder = "./result/"
     resultFolder = program_folder+ROOT+"result"+ROOT
@@ -225,7 +225,7 @@ def input_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, m
             for i in unique_inputs: #i为input
                 count_cases += 1
                 start = time.time()
-                result = execute_quantum_program(inputID, outputID, num_qubit, i, module_name)
+                result = execute_quantum_program(inputID, outputID, n_qubit, i, module_name)
                 end = time.time()
                 T2 += end-start
                 input_file.write(str(i)+' ')
@@ -280,7 +280,7 @@ def input_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, m
     ass_file.close()
 
 
-def input_coverage_partial(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder):
+def input_coverage_partial(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder):
     global T2
     resultFolder = program_folder + ROOT+"result"+ROOT
     if not os.path.exists(resultFolder):
@@ -309,7 +309,7 @@ def input_coverage_partial(inputID, valid_input, valid_output, num_qubit, output
             for i in all_inputs: #i为input
                 count_cases += 1
                 start = time.time()
-                result = execute_quantum_program(inputID, outputID, num_qubit, i, module_name)
+                result = execute_quantum_program(inputID, outputID, n_qubit, i, module_name)
                 end = time.time()
                 T2 += end - start
                 input_file.write(str(i) + ' ')
@@ -365,7 +365,7 @@ def input_coverage_partial(inputID, valid_input, valid_output, num_qubit, output
     ass_file.close()
 
 
-def input_coverage_no(inputID, outputID, num_qubit, module_name, program_folder):
+def input_coverage_no(inputID, outputID, n_qubit, module_name, program_folder):
     global T2
     resultFolder = program_folder + ROOT+"result"+ROOT
     if not os.path.exists(resultFolder):
@@ -386,7 +386,7 @@ def input_coverage_no(inputID, outputID, num_qubit, module_name, program_folder)
             for i in all_inputs: #i为input
                 count_cases += 1
                 start = time.time()
-                result = execute_quantum_program(inputID, outputID, num_qubit, i, module_name)
+                result = execute_quantum_program(inputID, outputID, n_qubit, i, module_name)
                 end = time.time()
                 T2 += end - start
                 input_file.write(str(i) + ' ')
@@ -404,7 +404,7 @@ def input_coverage_no(inputID, outputID, num_qubit, module_name, program_folder)
 
 
 
-def output_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder):
+def output_coverage(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder):
     global T2
     resultFolder = program_folder + ROOT+"result"+ROOT
     if not os.path.exists(resultFolder):
@@ -435,7 +435,7 @@ def output_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, 
                 for i in unique_inputs:
                     count_cases += 1
                     start = time.time()
-                    result = execute_quantum_program(inputID, outputID, num_qubit, i, module_name)
+                    result = execute_quantum_program(inputID, outputID, n_qubit, i, module_name)
                     end = time.time()
                     T2 += end - start
                     input_file.write(str(i) + ' ')
@@ -500,7 +500,7 @@ def output_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, 
     result_file.close()
     ass_file.close()
 
-def output_coverage_partial(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder):
+def output_coverage_partial(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder):
     global T2
     resultFolder = program_folder + ROOT+"result"+ROOT
     if not os.path.exists(resultFolder):
@@ -534,7 +534,7 @@ def output_coverage_partial(inputID, valid_input, valid_output, num_qubit, outpu
                 for i in all_inputs:
                     count_cases += 1
                     start = time.time()
-                    result = execute_quantum_program(inputID, outputID, num_qubit, i, module_name)
+                    result = execute_quantum_program(inputID, outputID, n_qubit, i, module_name)
                     end = time.time()
                     T2 += end - start
                     input_file.write(str(i) + ' ')
@@ -599,7 +599,7 @@ def output_coverage_partial(inputID, valid_input, valid_output, num_qubit, outpu
     result_file.close()
     ass_file.close()
 
-def output_coverage_no(inputID, outputID, num_qubit, module_name, program_folder):
+def output_coverage_no(inputID, outputID, n_qubit, module_name, program_folder):
     global T2
     resultFolder = program_folder + ROOT+"result"+ROOT
     if not os.path.exists(resultFolder):
@@ -625,7 +625,7 @@ def output_coverage_no(inputID, outputID, num_qubit, module_name, program_folder
                 for i in all_inputs:
                     count_cases += 1
                     start = time.time()
-                    result = execute_quantum_program(inputID, outputID, num_qubit, i, module_name)
+                    result = execute_quantum_program(inputID, outputID, n_qubit, i, module_name)
                     end = time.time()
                     T2 += end - start
                     input_file.write(str(i) + ' ')
@@ -653,7 +653,7 @@ def output_coverage_no(inputID, outputID, num_qubit, module_name, program_folder
     result_file.write('The execution time of the quantum program is ' + "{:.2f}".format(T2) + "s.")
 
 
-def input_output_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder):
+def input_output_coverage(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder):
     global T2
     resultFolder = program_folder + ROOT+"result"+ROOT
     if not os.path.exists(resultFolder):
@@ -684,7 +684,7 @@ def input_output_coverage(inputID, valid_input, valid_output, num_qubit, outputI
                 while True:
                     count_cases += 1
                     start = time.time()
-                    result = execute_quantum_program(inputID, outputID, num_qubit, i, module_name)
+                    result = execute_quantum_program(inputID, outputID, n_qubit, i, module_name)
                     end = time.time()
                     T2 += end - start
                     input_file.write(str(i) + ' ')
@@ -749,7 +749,7 @@ def input_output_coverage(inputID, valid_input, valid_output, num_qubit, outputI
     result_file.close()
     ass_file.close()
 
-def input_output_coverage_partial(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder):
+def input_output_coverage_partial(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder):
     global T2
     resultFolder = program_folder + ROOT+"result"+ROOT
     if not os.path.exists(resultFolder):
@@ -782,7 +782,7 @@ def input_output_coverage_partial(inputID, valid_input, valid_output, num_qubit,
                 while True:
                     count_cases += 1
                     start = time.time()
-                    result = execute_quantum_program(inputID, outputID, num_qubit, i, module_name)
+                    result = execute_quantum_program(inputID, outputID, n_qubit, i, module_name)
                     end = time.time()
                     T2 += end-start
                     input_file.write(str(i) + ' ')
@@ -839,7 +839,7 @@ def input_output_coverage_partial(inputID, valid_input, valid_output, num_qubit,
     result_file.close()
     ass_file.close()
 
-def input_output_coverage_no(inputID, outputID, num_qubit, module_name, program_folder):
+def input_output_coverage_no(inputID, outputID, n_qubit, module_name, program_folder):
     global T2
     resultFolder = program_folder + ROOT+"result"+ROOT
     if not os.path.exists(resultFolder):
@@ -865,7 +865,7 @@ def input_output_coverage_no(inputID, outputID, num_qubit, module_name, program_
                 while True:
                     count_cases += 1
                     start = time.time()
-                    result = execute_quantum_program(inputID, outputID, num_qubit, i, module_name)
+                    result = execute_quantum_program(inputID, outputID, n_qubit, i, module_name)
                     end = time.time()
                     T2 += end-start
                     input_file.write(str(i) + ' ')
@@ -895,7 +895,7 @@ def check_configuration_file(config):
         if config.has_option('program', 'root') == False:
             print("Error: Quito cannot find the root of the program.")
             end_running()
-        if config.has_option('program', 'num_qubit') == False:
+        if config.has_option('program', 'n_qubit') == False:
             print("Error: Quito cannot find the number of qubits of the program.")
             end_running()
         if config.has_option('program', 'inputID') == False:
@@ -926,7 +926,7 @@ def check_configuration_file(config):
             end_running()
     return ps_category
 
-def check_inputID_outputID(num_qubit, inputID, outputID):
+def check_inputID_outputID(n_qubit, inputID, outputID):
     if check_unique(inputID) == False:
         print("Wrong input IDs")
         end_running()
@@ -936,10 +936,10 @@ def check_inputID_outputID(num_qubit, inputID, outputID):
     inputID.sort()
     outputID.sort()
 
-    if int(inputID[-1]) > num_qubit - 1:
+    if int(inputID[-1]) > n_qubit - 1:
         print("Wrong input IDs")
         end_running()
-    if int(inputID[-1]) > num_qubit - 1:
+    if int(inputID[-1]) > n_qubit - 1:
         print("Wrong output IDs")
         end_running()
 
@@ -994,8 +994,8 @@ def quito_run():
     #get inputID, outputID and numner of qubits
     inputID_o = config.get('program','inputID').split(',')
     outputID_o = config.get('program','outputID').split(',')
-    num_qubit = int(config.get('program','num_qubit'))
-    inputID, outputID = check_inputID_outputID(num_qubit, inputID_o, outputID_o)
+    n_qubit = int(config.get('program','n_qubit'))
+    inputID, outputID = check_inputID_outputID(n_qubit, inputID_o, outputID_o)
 
     #ps_category = config.get('program_specification_category','ps_category')
     coverage_criterion = config.get('quito_configuration', 'coverage_criterion')
@@ -1020,13 +1020,13 @@ def quito_run():
     global BUDGET
 
 
-    # print('num_qubit:'+str(num_qubit))
+    # print('n_qubit:'+str(n_qubit))
 
 
 
     if ps_category == 'no':
         if coverage_criterion == 'IC':
-            input_coverage_no(inputID, outputID, num_qubit, module_name, program_folder)
+            input_coverage_no(inputID, outputID, n_qubit, module_name, program_folder)
         else:
             BUDGET = pow(2, len(inputID)) * 10  # default
             if config.get('quito_configuration', 'BUDGET') != None:
@@ -1037,9 +1037,9 @@ def quito_run():
                 print("Error: Budget is smaller than the number of inputs.")
                 end_running()
             if coverage_criterion == 'OC':
-                output_coverage_no(inputID, outputID, num_qubit, module_name, program_folder)
+                output_coverage_no(inputID, outputID, n_qubit, module_name, program_folder)
             elif coverage_criterion == 'IOC':
-                input_output_coverage_no(inputID, outputID, num_qubit, module_name, program_folder)
+                input_output_coverage_no(inputID, outputID, n_qubit, module_name, program_folder)
 
 
     else:
@@ -1076,8 +1076,8 @@ def quito_run():
                 BUDGET = pow(2, len(set(valid_input))) * 10  # default
                 if config.get('quito_configuration', 'BUDGET') != None:
                     BUDGET = int(config.get('quito_configuration', 'BUDGET'))
-                num_valid_input = set(valid_input)
-                if BUDGET < len(num_valid_input):
+                n_valid_input = set(valid_input)
+                if BUDGET < len(n_valid_input):
                     print("Error: Budget is smaller than the number of inputs.")
                     end_running()
             elif ps_category == 'partial':
@@ -1094,19 +1094,19 @@ def quito_run():
 
         if ps_category == 'full':
             if coverage_criterion == 'IC':
-                input_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+                input_coverage(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
             elif coverage_criterion == 'OC':
-                output_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+                output_coverage(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
             elif coverage_criterion == 'IOC':
-                input_output_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+                input_output_coverage(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
 
         if ps_category == 'partial':
             if coverage_criterion == 'IC':
-                input_coverage_partial(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+                input_coverage_partial(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
             elif coverage_criterion == 'OC':
-                output_coverage_partial(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+                output_coverage_partial(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
             elif coverage_criterion == 'IOC':
-                input_output_coverage_partial(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+                input_output_coverage_partial(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
 
 def user_input():
     print('\n')
@@ -1131,7 +1131,7 @@ def template_file():
 root= 
 ;(Required)
 ;Description: The absolute root of your quantum program file.
-num_qubit= 
+n_qubit= 
 ;(Required)
 ;Description: The total number of qubit of your quantum program.
 inputID= 
@@ -1185,7 +1185,7 @@ def example_file():
     example = '''
 [program]
 root=C:\program_run.py
-num_qubit=3
+n_qubit=3
 inputID=0,1
 outputID=2
 
@@ -1274,8 +1274,8 @@ def assertion(process):
     #get inputID, outputID and numner of qubits
     inputID_o = config.get('program','inputID').split(',')
     outputID_o = config.get('program','outputID').split(',')
-    num_qubit = int(config.get('program','num_qubit'))
-    inputID, outputID = check_inputID_outputID(num_qubit, inputID_o, outputID_o)
+    n_qubit = int(config.get('program','n_qubit'))
+    inputID, outputID = check_inputID_outputID(n_qubit, inputID_o, outputID_o)
 
     #ps_category = config.get('program_specification_category','ps_category')
     coverage_criterion = config.get('quito_configuration', 'coverage_criterion')
@@ -1327,8 +1327,8 @@ def assertion(process):
             BUDGET = pow(2, len(set(valid_input))) * 10  # default
             if config.get('quito_configuration', 'BUDGET') != None:
                 BUDGET = int(config.get('quito_configuration', 'BUDGET'))
-            num_valid_input = set(valid_input)
-            if BUDGET < len(num_valid_input):
+            n_valid_input = set(valid_input)
+            if BUDGET < len(n_valid_input):
                 print("Error: Budget is smaller than the number of inputs.")
                 end_running()
         elif ps_category == 'partial':
@@ -1345,16 +1345,16 @@ def assertion(process):
 
     if ps_category == 'full':
         if coverage_criterion == 'IC':
-            input_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+            input_coverage(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
         elif coverage_criterion == 'OC':
-            output_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+            output_coverage(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
         elif coverage_criterion == 'IOC':
-            input_output_coverage(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+            input_output_coverage(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
 
     if ps_category == 'partial':
         if coverage_criterion == 'IC':
-            input_coverage_partial(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+            input_coverage_partial(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
         elif coverage_criterion == 'OC':
-            output_coverage_partial(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+            output_coverage_partial(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)
         elif coverage_criterion == 'IOC':
-            input_output_coverage_partial(inputID, valid_input, valid_output, num_qubit, outputID, p, module_name, program_folder)
+            input_output_coverage_partial(inputID, valid_input, valid_output, n_qubit, outputID, p, module_name, program_folder)

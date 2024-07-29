@@ -64,7 +64,7 @@ class UCCSD(QuantumCircuit):
     ):
 
         # number of qubits
-        self.num_qubits = width
+        self.n_qubits = width
 
         # set flags for circuit generation
         self.parameters = parameters
@@ -237,11 +237,11 @@ class UCCSD(QuantumCircuit):
         # every call to the single or double operator will take param[p_i] as its
         # parameter and then increment the value of p_i
 
-        num_dbl = (
+        n_dbl = (
             self.nq**4 - 6 * self.nq**3 + 11 * self.nq**2 - 6 * self.nq
         ) / 24
-        num_sgl = (self.nq**2 - self.nq) / 2
-        numparam = int(num_dbl + num_sgl)
+        n_sgl = (self.nq**2 - self.nq) / 2
+        numparam = int(n_dbl + n_sgl)
 
         if self.parameters == "random":
 

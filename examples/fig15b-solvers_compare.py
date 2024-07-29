@@ -15,11 +15,11 @@ from time import perf_counter
 import ray
 
 
-def get_run_time(circuit, num_qubits, method="random", base_num=4):
-    U = unitary_group.rvs(2**num_qubits)
-    all_qubits = list(range(num_qubits))
+def get_run_time(circuit, n_qubits, method="random", base_num=4):
+    U = unitary_group.rvs(2**n_qubits)
+    all_qubits = list(range(n_qubits))
     layer_circuit = deepcopy(circuit)
-    state0 = np.zeros((2**num_qubits), dtype=np.complex128)
+    state0 = np.zeros((2**n_qubits), dtype=np.complex128)
     state0[0] = 1
     input_state = U @ state0
     layer_circuit.insert(0, [{"name": "unitary", "params": U, "qubits": all_qubits}])

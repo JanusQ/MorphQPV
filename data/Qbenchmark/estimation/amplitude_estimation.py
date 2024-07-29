@@ -6,18 +6,18 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.algorithms import AmplitudeEstimation, EstimationProblem
 class Amplitudeestimation:
-    def __init__(self,num_qubits:int) -> None:
-        self.num_qubits = num_qubits
+    def __init__(self,n_qubits:int) -> None:
+        self.n_qubits = n_qubits
 
     def gen_circuit(self) -> QuantumCircuit:
         """Returns a quantum circuit implementing Quantum Amplitude Estimation.
 
         Keyword arguments:
-        num_qubits -- number of qubits of the returned quantum circuit
+        n_qubits -- number of qubits of the returned quantum circuit
         """
 
         ae = AmplitudeEstimation(
-            num_eval_qubits=self.num_qubits - 1,  # -1 because of the to be estimated qubit
+            n_eval_qubits=self.n_qubits - 1,  # -1 because of the to be estimated qubit
         )
         problem = get_estimation_problem()
 

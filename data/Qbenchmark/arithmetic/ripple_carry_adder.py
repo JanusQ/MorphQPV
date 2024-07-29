@@ -25,7 +25,7 @@ class RCAdder:
     The initial carry value is stored in the qubit at index = 0.
     The binary value of a_i is stored in the qubit at index = 2*i + 2
     The binary value of b_i is stored in the qubit at index = 2*i + 1
-    The high bit, s_n, is stored in the last qubit at index = num_qubits - 1
+    The high bit, s_n, is stored in the last qubit at index = n_qubits - 1
 
     Attributes
     ----------

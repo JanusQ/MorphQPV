@@ -99,17 +99,17 @@ def process_sample(process: list, input_qubits: Iterable, method: str = 'base', 
     '''
     n_qubits = len(input_qubits)
     if method == 'base':
-        num_cumulate = 0
+        n_cumulate = 0
         for state in product(['0', '1'], repeat=n_qubits):
             new_circ = copy.deepcopy(process)
             state = reduce(lambda x, y: x+y, state)
             statevec = Statevector.from_label(state).data
             new_circ.insert(
                 0, [{'name': 'initialize', 'params': statevec, 'qubits': input_qubits}])
-            num_cumulate += 1
+            n_cumulate += 1
             if np.allclose(statevec, initial_state):
                 continue
-            if num_cumulate > base_num:
+            if n_cumulate > base_num:
                 break
             yield statevec, new_circ
 

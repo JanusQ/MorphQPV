@@ -1,7 +1,7 @@
 import numpy as np
 from z3 import *
 from typing import List, Tuple
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import random_clifford
 
 
@@ -249,13 +249,13 @@ class CllifordProgram(list):
         return circuit
 
     @classmethod
-    def from_circuit(cls, circuit: QuantumCircuit, num_qubits: int = None):  # type: ignore
+    def from_circuit(cls, circuit: QuantumCircuit, n_qubits: int = None):  # type: ignore
         """
         This function takes a circuit and converts it to a Clliford program.
         """
-        if num_qubits is None:
-            num_qubits = circuit.num_qubits
-        program: CllifordProgram = cls(num_qubits)
+        if n_qubits is None:
+            n_qubits = circuit.num_qubits
+        program: CllifordProgram = cls(n_qubits)
 
         for inst, qargs, cargs in circuit.data:
             qubitindex = circuit.find_bit(qargs[0])[0]
@@ -282,6 +282,8 @@ class CllifordProgram(list):
                                0], circuit.find_bit(qargs[0])[0])])
                 program.append(['CNOT', (circuit.find_bit(qargs[0])[
                                0], circuit.find_bit(qargs[1])[0])])
+            elif inst.name.lower() in ("barrier", "id"):
+                pass
             else:
                 raise ValueError("Invalid gate type: {}".format(inst.name))
         return program
@@ -341,10 +343,10 @@ def generate_inout_stabilizer_tables(n_qubits: int, program: CllifordProgram):
     return input_stabilizer_table, output_stabilizer_table
 
 
-def custom_random_circuit(num_qubits, depth, gate_set):
-    qc = QuantumCircuit(num_qubits)
+def custom_random_circuit(n_qubits, depth, gate_set):
+    qc = QuantumCircuit(n_qubits)
     for _ in range(depth):
-        for qubit in range(num_qubits):
+        for qubit in range(n_qubits):
             gate = np.random.choice(gate_set)
             if gate == 'h':
                 qc.h(qubit)
@@ -366,12 +368,13 @@ def custom_random_circuit(num_qubits, depth, gate_set):
                 theta = np.random.uniform(0, np.random.rand() * 2 * np.pi)
                 qc.rz(theta, qubit)
             elif gate == 'cx':
-                if num_qubits > 1:
-                    target = (qubit + 1) % num_qubits
+                if n_qubits > 1:
+                    target = (qubit + 1) % n_qubits
                     qc.cx(qubit, target)
             elif gate == 'cz':
-                if num_qubits > 1:
-                    target = (qubit + 1) % num_qubits
+                if n_qubits > 1:
+                    target = (qubit + 1) % n_qubits
                     qc.cz(qubit, target)
         # qc.barrier()
+    qc = transpile(qc, basis_gates=gate_set, optimization_level=3)
     return qc

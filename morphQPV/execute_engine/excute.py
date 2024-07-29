@@ -57,7 +57,7 @@ class ExcuteEngine:
     def __init__(self,layer_circuit) -> None:
         self.circuit = layer_circuit
         self.qubits = ExcuteEngine.get_qubits(layer_circuit)
-        self.num_qubits = len(self.qubits)
+        self.n_qubits = len(self.qubits)
         pass
     @property
     def gates_num(self):
@@ -259,12 +259,12 @@ class ExcuteEngine:
         Phis = []
         if output_qubits is None:
             output_qubits = self.qubits
-        num_qubits = len(output_qubits)
-        current_density = np.eye(2**num_qubits)/2**num_qubits
+        n_qubits = len(output_qubits)
+        current_density = np.eye(2**n_qubits)/2**n_qubits
         while abs(fid-1) > 1e-2:
             Phis += self.partial_output_tomography(output_qubits,minimal_shots=unit_shots)
             shots += unit_shots
-            build_density = (2**num_qubits+1)*np.sum(Phis,axis=0)/shots - np.eye(2**num_qubits)
+            build_density = (2**n_qubits+1)*np.sum(Phis,axis=0)/shots - np.eye(2**n_qubits)
             # build_density = build_density/np.trace(build_density)
             fid = fidelity(real,build_density)
             current_density =build_density
@@ -276,11 +276,11 @@ class ExcuteEngine:
     
     def input_tomography(self,output_qubits,real_state):
         
-        return estimate_input(self.circuit,self.num_qubits,self.qubits,real_state,output_qubits=output_qubits)
+        return estimate_input(self.circuit,self.n_qubits,self.qubits,real_state,output_qubits=output_qubits)
     
     def output_tomography(self,output_qubits,real_state=None):
         
-        return estimate_output(self.circuit,self.num_qubits,output_qubits)
+        return estimate_output(self.circuit,self.n_qubits,output_qubits)
 
     
             

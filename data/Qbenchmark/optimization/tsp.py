@@ -18,15 +18,15 @@ if TYPE_CHECKING:  # pragma: no cover
 class TSP:
     def __init__(self) -> None:
         pass
-    def gen_circuit(num_nodes: int) -> QuantumCircuit:
+    def gen_circuit(n_nodes: int) -> QuantumCircuit:
         """Returns a quantum circuit solving the Travelling Salesman Problem (TSP).
 
         Keyword arguments:
-        num_nodes -- number of to be visited nodes
+        n_nodes -- number of to be visited nodes
         """
 
         # Generating a graph of 3 nodes
-        n = num_nodes
+        n = n_nodes
         tsp = Tsp.create_random_instance(n, seed=10)
 
         qp = tsp.to_quadratic_program()
@@ -38,7 +38,7 @@ class TSP:
         algorithm_globals.random_seed = 10
 
         spsa = SPSA(maxiter=25)
-        ry = TwoLocal(qubit_op.num_qubits, "ry", "cz", reps=5, entanglement="linear")
+        ry = TwoLocal(qubit_op.n_qubits, "ry", "cz", reps=5, entanglement="linear")
         vqe = VQE(ansatz=ry, optimizer=spsa, estimator=Estimator())
 
         vqe_result = vqe.compute_minimum_eigenvalue(qubit_op)

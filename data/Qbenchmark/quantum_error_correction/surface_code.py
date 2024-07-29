@@ -75,10 +75,10 @@ class SurfaceCodeCircuit:
         self.blocks = T
 
         # quantum registers
-        self._num_xy = int((d**2 - 1) / 2)
+        self._n_xy = int((d**2 - 1) / 2)
         self.code_qubit = QuantumRegister(d**2, "code_qubit")
-        self.zplaq_qubit = QuantumRegister(self._num_xy, "zplaq_qubit")
-        self.xplaq_qubit = QuantumRegister(self._num_xy, "xplaq_qubit")
+        self.zplaq_qubit = QuantumRegister(self._n_xy, "zplaq_qubit")
+        self.xplaq_qubit = QuantumRegister(self._n_xy, "xplaq_qubit")
         self.qubit_registers = [self.code_qubit, self.zplaq_qubit, self.xplaq_qubit]
 
         # classical registers
@@ -207,10 +207,10 @@ class SurfaceCodeCircuit:
 
         # classical registers for this round
         self.zplaq_bits.append(
-            ClassicalRegister(self._num_xy, "round_" + str(self.T) + "_zplaq_bit")
+            ClassicalRegister(self._n_xy, "round_" + str(self.T) + "_zplaq_bit")
         )
         self.xplaq_bits.append(
-            ClassicalRegister(self._num_xy, "round_" + str(self.T) + "_xplaq_bit")
+            ClassicalRegister(self._n_xy, "round_" + str(self.T) + "_xplaq_bit")
         )
 
         for log in ["0", "1"]:
@@ -231,7 +231,7 @@ class SurfaceCodeCircuit:
 
             self.circuit[log].h(self.xplaq_qubit)
 
-            for j in range(self._num_xy):
+            for j in range(self._n_xy):
                 self.circuit[log].measure(self.xplaq_qubit[j], self.xplaq_bits[self.T][j])
                 self.circuit[log].measure(self.zplaq_qubit[j], self.zplaq_bits[self.T][j])
                 if self._resets and not final:
@@ -432,7 +432,7 @@ class SurfaceCodeCircuit:
             flipped_logical_nodes (list): List of qubits nodes for logical
             operators that are flipped by the errors, that were not included
             in the original nodes.
-            num_errors (int): Minimum number of errors required to create nodes.
+            n_errors (int): Minimum number of errors required to create nodes.
         """
 
         bulk_nodes = [node for node in nodes if not node.is_boundary]
@@ -448,7 +448,7 @@ class SurfaceCodeCircuit:
             if (len(boundary_nodes) % 2) == 0 or ignore_extra_boundary:
                 neutral = True
                 flipped_logicals = set()
-                # estimate num_errors from size
+                # estimate n_errors from size
                 if bulk_nodes:
                     xs = []
                     ys = []
@@ -458,25 +458,25 @@ class SurfaceCodeCircuit:
                         ys.append(y)
                     dx = max(xs) - min(xs)
                     dy = max(ys) - min(ys)
-                    num_errors = dx + dy
+                    n_errors = dx + dy
                     if dx > 0 and dy > 0:
-                        num_errors -= 1
+                        n_errors -= 1
                 else:
-                    num_errors = 0
+                    n_errors = 0
             else:
                 neutral = False
                 flipped_logicals = set()
-                num_errors = 0
+                n_errors = 0
         else:
             # find nearest boundary
-            num_errors = (self.d - 1) / 2
+            n_errors = (self.d - 1) / 2
             for node in bulk_nodes:
                 x, y = coords[node.index]
                 if self.basis == "z":
                     p = y
                 else:
                     p = x
-                num_errors = min(num_errors, p + 1, self.d - p)
+                n_errors = min(n_errors, p + 1, self.d - p)
             flipped_logicals = {1 - int(p < (self.d - 1) / 2)}
 
         # if unneeded logical zs are given, cluster is not neutral
@@ -496,7 +496,7 @@ class SurfaceCodeCircuit:
             )
             flipped_logical_nodes.append(node)
 
-        return neutral, flipped_logical_nodes, num_errors
+        return neutral, flipped_logical_nodes, n_errors
 
     def is_cluster_neutral(self, atypical_nodes):
         """

@@ -35,7 +35,7 @@ class Dynamics:
 
         # set flags for circuit generation
         self.barriers = barriers
-        self.nq = self.get_num_qubits()
+        self.nq = self.get_n_qubits()
 
         # create a QuantumCircuit object
         if regname is None:
@@ -48,7 +48,7 @@ class Dynamics:
         self.ancQ = QuantumRegister(1, "ancQ")
         self.circ.add_register(self.ancQ)
 
-    def get_num_qubits(self):
+    def get_n_qubits(self):
         """
         Given the problem Hamiltonian, return the appropriate number of qubits
         needed to simulate its dynamics.

@@ -24,15 +24,15 @@ def get_examplary_max_cut_qp(n_nodes: int, degree: int = 2) -> QuadraticProgram:
     maxcut = Maxcut(graph)
     return maxcut.to_quadratic_program()
 
-def create_circuit(num_qubits: int) -> QuantumCircuit:
+def create_circuit(n_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Quantum Approximation Optimization Algorithm for a specific max-cut
      example.
 
     Keyword arguments:
-    num_qubits -- number of qubits of the returned quantum circuit
+    n_qubits -- number of qubits of the returned quantum circuit
     """
 
-    qp = get_examplary_max_cut_qp(num_qubits)
+    qp = get_examplary_max_cut_qp(n_qubits)
     assert isinstance(qp, QuadraticProgram)
 
     qaoa = QAOA(sampler=Sampler(), reps=2, optimizer=SLSQP(maxiter=25))
@@ -44,8 +44,8 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     return qc
 
 class QAOA:
-    def __init__(self,num_qubits: int) -> None:
-        self.num_qubits = num_qubits
+    def __init__(self,n_qubits: int) -> None:
+        self.n_qubits = n_qubits
         pass
     def gen_circuit(self) -> QuantumCircuit:
-        return create_circuit(self.num_qubits)
+        return create_circuit(self.n_qubits)

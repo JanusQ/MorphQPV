@@ -1,4 +1,4 @@
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit, execute, transpile
 from qiskit.quantum_info import Operator, state_fidelity
 from qiskit.circuit.library import HGate, SGate, SdgGate, CXGate, CZGate, IGate, XGate, YGate, ZGate, TGate, TdgGate,RXGate, RYGate, RZGate, CRXGate
 from qiskit.quantum_info import Clifford,random_clifford
@@ -10,15 +10,15 @@ from tqdm import tqdm
 
 from bugfix.clliford.clliford_gate_variables import CllifordCorrecter
 from bugfix.clliford.utills import CllifordProgram, generate_inout_stabilizer_tables
-def generate_bugged_circuit(correct_circuit, error_rate=0.1):
+def generate_bugged_circuit(correct_circuit, n_errors: int=2):
     bugged_circuit = correct_circuit.copy()
-    num_gates = len(correct_circuit.data)
-    num_errors = int(num_gates * error_rate)
-    gates = [HGate(), XGate(), YGate(), ZGate(), CXGate(), CZGate(), SGate()]
+    # n_gates = len(correct_circuit.data)
+    # n_errors = int(n_gates * error_rate)
+    gates = [HGate(), XGate(), YGate(), ZGate(), CXGate(),  SGate()]  # CZGate(),
     single_qubit_gates = [HGate(), XGate(), YGate(), ZGate(), SGate()]
-    two_qubit_gates = [CXGate(), CZGate()]
-    param_gates = [RXGate(Parameter('θ')), RYGate(Parameter('θ')), RZGate(Parameter('θ'))]
-    for _ in range(num_errors):
+    two_qubit_gates = [CXGate()]  # , CZGate()
+    # param_gates = [RXGate(Parameter('θ')), RYGate(Parameter('θ')), RZGate(Parameter('θ'))]
+    for _ in range(n_errors):
         error_type = random.choice(['add', 'delete', 'replace'])
         qubits = list(range(correct_circuit.num_qubits))
         if error_type == 'add':
@@ -41,51 +41,117 @@ def generate_bugged_circuit(correct_circuit, error_rate=0.1):
 
     return bugged_circuit
 
+clifford_1q_gates = [
+    [XGate,],
+    [HGate,],
+    [SGate,],
+    [IGate,],
+]
+clifford_2q_gates = [
+    [CXGate,],
+]
+
+for gate_op in clifford_1q_gates:
+    gate_op.append(Operator(gate_op[0]()).data)
+    
+for gate_op in clifford_2q_gates:
+    gate_op.append(Operator(gate_op[0]()).data)
+
+
+
+
+def matrix_distance_squared(A, B):
+    """
+    Returns:
+        Float : A single value between 0 and 1, representing how closely A and B match.  A value near 0 indicates that A and B are the same unitary, up to an overall phase difference.
+    """
+    # optimized implementation
+    return np.abs(1 - np.abs(np.sum(np.multiply(A, np.conj(B)))) / A.shape[0])
+
+
+
 def replace_param_gates_with_clifford(circuit):
-    replacement_mapping = {
-        'rx': XGate(),  # Replace RX with X gate
-        'ry': YGate(),  # Replace RY with Y gate
-        'rz': ZGate()   # Replace RZ with Z gate
-        # Add more replacements if necessary
-    }
     new_circuit = QuantumCircuit(*circuit.qregs)
     for inst, qargs, cargs in circuit.data:
-        if inst.name in replacement_mapping:
-            new_circuit.append(replacement_mapping[inst.name], qargs, cargs)
-        else:
+        gate_matrix = Operator(inst).data
+        if len(qargs) == 1:
+            nearest_gate, nearest_distance = None, float('inf')
+            for clifford_gate, clifford_matrix in clifford_1q_gates:
+                distance = matrix_distance_squared(gate_matrix, clifford_matrix)
+                if distance < nearest_distance:
+                    nearest_gate = clifford_gate
+                    nearest_distance = distance
+            new_circuit.append(nearest_gate(), qargs, cargs)
+        elif len(qargs) == 2:
+            assert inst.name == 'cx'
             new_circuit.append(inst, qargs, cargs)
+        
+        # if inst.name in replacement_mapping:
+        #     new_circuit.append(replacement_mapping[inst.name], qargs, cargs)
+        # else:
+        #     new_circuit.append(inst, qargs, cargs)
+            
     return new_circuit
 
 
-def generate_input_states(num_qubits, num_states=8):
+
+# def replace_param_gates_with_clifford(circuit):
+#     replacement_mapping = {
+#         'rx': XGate(),  # Replace RX with X gate
+#         'ry': YGate(),  # Replace RY with Y gate
+#         'rz': ZGate()   # Replace RZ with Z gate
+#         # Add more replacements if necessary
+#     }
+    
+#     # print(Operator(XGate()).data)    
+    
+#     new_circuit = QuantumCircuit(*circuit.qregs)
+#     for inst, qargs, cargs in circuit.data:
+#         if inst.name in replacement_mapping:
+#             new_circuit.append(replacement_mapping[inst.name], qargs, cargs)
+#         else:
+#             new_circuit.append(inst, qargs, cargs)
+#     return new_circuit
+
+
+def generate_input_states(n_qubits, n_states=8):
     states = []
-    for _ in range(num_states):
-        cllifordgate = random_clifford(num_qubits)
+    for _ in range(n_states):
+        cllifordgate = random_clifford(n_qubits)
         state = cllifordgate.to_circuit()
         states.append(state)
     
     # Alternative method for generating input states
-    # for _ in range(num_states):
-    #     state = QuantumCircuit(num_qubits)
-    #     for qubit in range(num_qubits):
+    # for _ in range(n_states):
+    #     state = QuantumCircuit(n_qubits)
+    #     for qubit in range(n_qubits):
     #         if random.random() < 0.25:
     #             state.h(qubit)
     #         if 0.25 <random.random() < 0.5:
-    #             state.cx(qubit,(qubit+1)%num_qubits)
+    #             state.cx(qubit,(qubit+1)%n_qubits)
     #         if 0.5 <random.random() < 0.75:
-    #             state.cx((qubit+1)%num_qubits,qubit)
+    #             state.cx((qubit+1)%n_qubits,qubit)
     #         if random.random() > 0.75:
     #             state.x(qubit)
     #     states.append(state)
     return states
 
 def apply_circuit(circuit, input_state):
+    output_states = []
+    if isinstance(input_state, list):
+        input_states = input_state
+    else:
+        input_states = [input_state]
+        
     backend = Aer.get_backend('statevector_simulator')
-    qc = input_state
-    qc.compose(circuit, inplace=True)
-    job = execute(qc, backend)
-    output_state = job.result().get_statevector(qc)
-    return output_state
+    
+    for input_state in input_states:
+        qc = input_state
+        qc.compose(circuit, inplace=True)
+        job = execute(qc, backend)
+        output_state = job.result().get_statevector(qc)
+        output_states.append(output_state)
+    return output_states
 
 def calculate_distance(output_state, correct_output):
     return 1 - state_fidelity(output_state, correct_output)
@@ -142,12 +208,12 @@ def optimize_parameters(circuit, input_states, correct_output_states, max_iterat
 # Genetic Algorithm for optimizing circuit structure
 def genetic_algorithm_optimize(circuit, correct_output_states, input_states,population_size=10, generations=20, mutation_rate=0.1):
     def create_population(circuit, size):
-        return [generate_bugged_circuit(circuit, error_rate=0.5) for _ in range(size)]
+        return [generate_bugged_circuit(circuit, n_errors= len(circuit)// 2) for _ in range(size)]
 
     def evaluate_fitness(circuit, correct_output_states):
         total_distance = 0
-        for input_idx, correct_output in correct_output_states.items():
-            output_state = apply_circuit(circuit, input_states[input_idx])
+        output_states = apply_circuit(circuit, input_states)
+        for output_state, correct_output in zip(output_states, correct_output_states):
             total_distance += calculate_distance(output_state, correct_output)
         return total_distance
 
@@ -170,7 +236,7 @@ def genetic_algorithm_optimize(circuit, correct_output_states, input_states,popu
 
     def mutate(circuit, mutation_rate):
         if random.random() < mutation_rate:
-            circuit = generate_bugged_circuit(circuit, error_rate=0.1)
+            circuit = generate_bugged_circuit(circuit, n_errors=len(circuit)//10)
         return circuit
 
     population = create_population(circuit, population_size)
@@ -196,10 +262,9 @@ def genetic_algorithm_optimize(circuit, correct_output_states, input_states,popu
 
     return best_circuit
 
-
 def clliford_repair(circuit: QuantumCircuit,  right_circuit: QuantumCircuit, input_statelen: int, d_max: int):
     
-    n_qubits = circuit.num_qubits   
+    n_qubits = circuit.n_qubits   
     wrong_program = CllifordProgram.from_circuit(circuit)
     correcter = CllifordCorrecter(n_qubits,d_max,wrong_program)
     for _ in range(input_statelen):

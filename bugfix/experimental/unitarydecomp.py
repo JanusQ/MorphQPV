@@ -14,10 +14,10 @@ def tensor_product(*matrices):
     for matrix in matrices[1:]:
         tensor_product = np.kron(tensor_product,matrix)
     return tensor_product
-def get_unitary(num_qubits,parms):
+def get_unitary(n_qubits,parms):
     """ GET UNITARY
     Args:
-        num_qubits: number of qubits
+        n_qubits: number of qubits
     Returns:
         unitary: unitary matrix
     """
@@ -25,8 +25,8 @@ def get_unitary(num_qubits,parms):
     pauliY = np.array([[0, -1j], [1j, 0]])
     pauliZ = np.array([[1, 0], [0, -1]])
     paulis = [np.eye(2)] + [pauliX, pauliY, pauliZ]
-    unitary = np.eye(2**num_qubits)
-    for i,pauli in enumerate(product(paulis, repeat=num_qubits)):
+    unitary = np.eye(2**n_qubits)
+    for i,pauli in enumerate(product(paulis, repeat=n_qubits)):
         gate = tensor_product(*pauli)
         unitary = unitary + parms[i] * gate
     return unitary
@@ -35,17 +35,17 @@ def get_unitary(num_qubits,parms):
 def pauli_gates(qubits):
     """ GENERATE PAULI BASIS GATES
     Args:
-        num_qubits: number of qubits
+        n_qubits: number of qubits
     Returns:
         pauli_basis_gates: list of pauli basis gates
     
     """
     pauli_basis_gates = []
-    num_qubits = len(qubits)
+    n_qubits = len(qubits)
     paulis = ['I', 'x', 'y', 'z']
-    for pauli in product(paulis, repeat=num_qubits):
+    for pauli in product(paulis, repeat=n_qubits):
         gate = []
-        for i in range(num_qubits):
+        for i in range(n_qubits):
             if pauli[i] == 'I':
                 continue
             gate.append({

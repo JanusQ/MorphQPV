@@ -4,10 +4,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 
 import numpy as np
 
-def get_data_mnist(num_qubits):
+def get_data_mnist(n_qubits):
     ## load numpy data
-    data = np.load(f'data/minist_data_{num_qubits}.npy')
-    labels = np.load(f'data/minist_labels_{num_qubits}.npy')
+    data = np.load(f'data/minist_data_{n_qubits}.npy')
+    labels = np.load(f'data/minist_labels_{n_qubits}.npy')
     return data, labels
 def PCA_anlysis(data):
     # 计算协方差矩阵
@@ -29,35 +29,35 @@ def PCA_anlysis(data):
     return i, lowDDataMat, redEigVects
 def strategy1minist(qubit_range=[4,6,8,10]):
     # 获取mnist数据集
-    for num_qubits in qubit_range:
-        X_test, y_test = get_data_mnist(num_qubits)
+    for n_qubits in qubit_range:
+        X_test, y_test = get_data_mnist(n_qubits)
         max_sample,lowDDataMat, redEigVects = PCA_anlysis(X_test)
         print(max_sample)
-        print(2**num_qubits*2)
-        print(max_sample/2**(num_qubits+1))
+        print(2**n_qubits*2)
+        print(max_sample/2**(n_qubits+1))
         yield max_sample
 
 
-def tomography_shots(num_qubits):
+def tomography_shots(n_qubits):
     ## this data is estimated from the variatial quantum tomography results for density matrix, unit: shots
     return {
         4: 300,
         6: 1000,
         8: 5000,
         10: 40000
-    }[num_qubits]
+    }[n_qubits]
 
-def strategy3_shots(num_qubits):
+def strategy3_shots(n_qubits):
     ## this formula is estimated from the variatial quantum tomography for distribution
-    return 2**(num_qubits-1)
+    return 2**(n_qubits-1)
 
-def strategy2_samples(num_qubits):
+def strategy2_samples(n_qubits):
     ## |x+y> = |x>|0> + |0>|y> so the samples is 2*2^(n/2)
-    return 2*2**(num_qubits//2)
+    return 2*2**(n_qubits//2)
 
-def original_samples(num_qubits):
+def original_samples(n_qubits):
     ## the original samples is 2^(n+1)
-    return 2**(num_qubits+1)
+    return 2**(n_qubits+1)
 
 def plot_results():
     #convert to pandas dataframe

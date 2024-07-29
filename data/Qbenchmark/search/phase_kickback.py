@@ -8,8 +8,8 @@ from qiskit import QuantumCircuit, QuantumRegister
 import math
 import numpy as np
 class PhaseKickback(QuantumCircuit):
-    def __init__(self, num_qubits):
-        super().__init__(num_qubits)
+    def __init__(self, n_qubits):
+        super().__init__(n_qubits)
     
     def flip_sign(self, wires, arr_bin):
         r"""Apply a phase kickback to a state
@@ -30,10 +30,10 @@ class PhaseKickback(QuantumCircuit):
         if arr_bin[-1] == 0:
             self.x(wires[-1])
         
-    def get_random_key(self, num_qubits):
-        return [np.random.randint(2) for _ in range(num_qubits)]
+    def get_random_key(self, n_qubits):
+        return [np.random.randint(2) for _ in range(n_qubits)]
     def gen_circuit(self):
         self.h(0)
-        self.flip_sign(self.qubits, self.get_random_key(self.num_qubits-1))
+        self.flip_sign(self.qubits, self.get_random_key(self.n_qubits-1))
         self.h(0)
         return self

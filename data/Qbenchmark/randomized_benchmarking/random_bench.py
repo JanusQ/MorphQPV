@@ -34,9 +34,9 @@ class StandardRB:
     """
     def __init__(
         self,
-        num_qubits: int,
+        n_qubits: int,
         lengths: Iterable[int]=None,
-        num_samples: int = 3,
+        n_samples: int = 3,
         seed: Optional[Union[int,Iterable]] = None,
         full_sampling: Optional[bool] = False
     ):
@@ -46,7 +46,7 @@ class StandardRB:
             physical_qubits: List of physical qubits for the experiment.
             lengths: A list of RB sequences lengths.
             backend: The backend to run the experiment on.
-            num_samples: Number of samples to generate for each sequence length.
+            n_samples: Number of samples to generate for each sequence length.
             seed: Optional, seed used to initialize ``numpy.random.default_rng``.
                   when generating circuits. The ``default_rng`` will be initialized
                   with this seed value everytime :meth:`circuits` is called.
@@ -69,18 +69,18 @@ class StandardRB:
             raise ValueError(
                 f"The lengths list {lengths} should not contain " "duplicate elements."
             )
-        if num_samples <= 0:
-            raise ValueError(f"The number of samples {num_samples} should " "be positive.")
-        self.num_qubits = num_qubits
-        self.physical_qubits = list(range(num_qubits))
+        if n_samples <= 0:
+            raise ValueError(f"The number of samples {n_samples} should " "be positive.")
+        self.n_qubits = n_qubits
+        self.physical_qubits = list(range(n_qubits))
         self.seed = seed
         self.lengths = lengths
         self.full_sampling = full_sampling
-        self.num_samples = num_samples
+        self.n_samples = n_samples
 
     def __sample_sequence(self, length: int, rng: Iterable) -> List:
         # Return circuit object instead of Clifford object for 3 or more qubits case for speed
-        return [random_clifford(self.num_qubits, rng).to_circuit() for _ in range(length)]
+        return [random_clifford(self.n_qubits, rng).to_circuit() for _ in range(length)]
 
     def _sample_sequences(self):
         """Sample RB sequences
@@ -91,11 +91,11 @@ class StandardRB:
         rng = np.random.default_rng(self.seed)
         sequences = []
         if self.full_sampling:
-            for _ in range(self.num_samples):
+            for _ in range(self.n_samples):
                 for length in self.lengths:
                     sequences.append(self.__sample_sequence(length, rng))
         else:
-            for _ in range(self.num_samples):
+            for _ in range(self.n_samples):
                 longest_seq = self.__sample_sequence(max(self.lengths), rng)
                 for length in self.lengths:
                     sequences.append(longest_seq[:length])
@@ -110,14 +110,14 @@ class StandardRB:
             A list of :class:`QuantumCircuit`.
         """
         for seq in self._sample_sequences():
-            circ = QuantumCircuit(self.num_qubits)
+            circ = QuantumCircuit(self.n_qubits)
             for elem in seq:
                 circ.append(elem.to_instruction(), circ.qubits)
             # Compute inverse, compute only the difference from the previous shorter sequence
             for elem in seq[::-1]:
                 circ.append(elem.to_instruction(), circ.qubits)
             circ.metadata = {
-                "xval": self.num_samples*len(self.lengths),
+                "xval": self.n_samples*len(self.lengths),
                 "group": "Clifford",
                 "physical_qubits": self.physical_qubits,
             }
@@ -125,7 +125,7 @@ class StandardRB:
     
     def gen_circuit(self,length):
         seq = self.__sample_sequence(length, np.random.default_rng(self.seed))
-        circ = QuantumCircuit(self.num_qubits)
+        circ = QuantumCircuit(self.n_qubits)
         for elem in seq:
             circ.append(elem.to_instruction(), circ.qubits)
         for elem in seq[::-1]:

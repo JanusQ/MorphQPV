@@ -15,9 +15,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-def generate_base_states(num_qubits,num_base_states):
-    for i in range(num_base_states):
-        base_state = np.zeros((2**num_qubits),dtype=np.complex128)
+def generate_base_states(n_qubits,n_base_states):
+    for i in range(n_base_states):
+        base_state = np.zeros((2**n_qubits),dtype=np.complex128)
         base_state[i] = 1
         yield base_state
 
@@ -35,8 +35,8 @@ def get_proj_unitary(target_state):
     elif np.allclose(Q[:, 0], - target_state, atol=1e-10):  # The phase might be flipped
         unitary[:, 1:] = -Q[:, 1:]
   
-def generate_orthgonal_states(num_qubits):
-    target_state = np.random.randn((2**num_qubits))
+def generate_orthgonal_states(n_qubits):
+    target_state = np.random.randn((2**n_qubits))
     target_state[np.abs(target_state) < 1e-3] = 0
     target_state = target_state/np.linalg.norm(target_state,ord=2)
     N = target_state.shape[0]
@@ -44,7 +44,7 @@ def generate_orthgonal_states(num_qubits):
     orthgonal_basis = []
     orthgonal_basis.append(target_state)
     for i in range(1,N):
-        base_state = np.random.randn((2**num_qubits))
+        base_state = np.random.randn((2**n_qubits))
         ## clip the target state
         ## if some elements are too small, we set them to zero
         base_state[np.abs(base_state) < 1e-3] = 0
@@ -62,22 +62,22 @@ def get_fidelity(circuit,base_states,acc_num):
         approximate_state = approximate(input_state,base_states)
         yield  np.abs(approximate_state.conj().dot(input_state)) ** 2
 
-def generate_input_states(circuit,num_qubits=6):
+def generate_input_states(circuit,n_qubits=6):
     random_idx = np.random.randint(1,len(circuit))
-    input_state = ExcuteEngine.excute_on_pennylane(circuit[:random_idx],type='statevector',output_qubits=list(range(num_qubits)),N_qubits=num_qubits)
+    input_state = ExcuteEngine.excute_on_pennylane(circuit[:random_idx],type='statevector',output_qubits=list(range(n_qubits)),N_qubits=n_qubits)
     return input_state
 
-def get_results(algos, num_qubits,filename = 'distribution_random',resdir = 'examples/fig10-confidence/'):
+def get_results(algos, n_qubits,filename = 'distribution_random',resdir = 'examples/fig10-confidence/'):
     with open(f'{resdir}{filename}.csv','w') as f:
         f.write('algo,samples,mean,std\n')
     with open(f'{resdir}{filename}_detail.csv','w') as f:
         f.write('algo,samples,accuracy\n')
         
-    all_base_states = generate_orthgonal_states(num_qubits)
-    for samples in range(2,2**num_qubits+1,2):
+    all_base_states = generate_orthgonal_states(n_qubits)
+    for samples in range(2,2**n_qubits+1,2):
         base_states = all_base_states[:samples]
         for algo in algos:
-            circuit = layer_circuit_generator(algo,num_qubits,m=2,k=2)
+            circuit = layer_circuit_generator(algo,n_qubits,m=2,k=2)
             fidelity = list(get_fidelity(circuit,base_states,200))
             print(algo,samples,np.mean(fidelity),np.std(fidelity))
             with open(f'{resdir}{filename}.csv','a') as f:

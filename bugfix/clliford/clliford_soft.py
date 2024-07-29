@@ -1,10 +1,10 @@
 
 from z3 import *
 from .utills import StabilizerTable,CllifordProgram
-
+import time
 
 class CllifordCorrecter:
-    def __init__(self, n_qubits,d_max:int = 4,time_out_eff:int = 10):
+    def __init__(self, n_qubits,d_max:int = 4,time_out_eff:int = 1000):
         self.n = n_qubits
         self.d_max = d_max
         self.Svars, self.Hvars,self.Ivars, self.CNOTvars = self.define_variables()
@@ -12,6 +12,7 @@ class CllifordCorrecter:
         self.soft_constraints = []
         self.iout_idx = 0
         self.time_out_eff = time_out_eff
+        
     def define_variables(self):
         """
         Defines the variables used in the Clliford solver.
@@ -98,7 +99,7 @@ class CllifordCorrecter:
         Applies  gates 
         """
         self.applyed_gates = True
-        print('Applying gates... can only used once')
+        # print('Applying gates... can only used once')
         for d in range(self.d_max):
             for q in range(self.n):
                 self.apply_hadamard(q,self.Hvars[q][d])
@@ -143,6 +144,7 @@ class CllifordCorrecter:
         self.set_in(input_stabilizer_table)
         self.apply_gates()
         self.set_out(output_stabilizer_table)
+        
     def set_out(self,stabilizer_table:StabilizerTable):
         """
         Returns the expression for the equality of the stabilizer table at depth d.
@@ -153,10 +155,11 @@ class CllifordCorrecter:
                 self.soft_constraints.append( self.Z[i][j] ==  BoolVal(bool(stabilizer_table.Z[i][j])))
             self.soft_constraints.append( self.P[i] == BoolVal(bool(stabilizer_table.P[i])))
     
-    def solve(self):
+    def solve(self, timeout=None):
         """
         Solves the Clliford solver.
         """
+        start_time = time.time()
         self.unique_gate()
         self.inverse_cancel()
         s = Optimize()
@@ -164,7 +167,13 @@ class CllifordCorrecter:
             s.add(c)
         for c in self.soft_constraints:
             s.add_soft(c)
-        s.set("timeout", self.time_out_eff*self.n**5)
+        
+        if timeout is None:
+            timeout = self.time_out_eff*(self.n**5)  # ** 5
+        s.set("timeout", timeout)
+        print('set timeout', timeout/1000, 's')
+            
+        
         print("Solving...")
         print(s.check())
         fix_program = CllifordProgram(self.n)
@@ -193,6 +202,8 @@ class CllifordCorrecter:
                                 fix_program.cnot(q,t)
                     if repeat > 1:
                         raise ValueError("Multiple gates applied to the same qubit at depth {}".format(d))
+            
+            print("MAX-SMT Time use: ", time.time()-start_time)
             return fix_program
         
         

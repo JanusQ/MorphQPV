@@ -8,8 +8,8 @@ from bugfix.paramizefix.pennylane import CircuitTape, update_step
 from bugfix.paramizefix.qiskit import apply_circuit, generate_bugged_circuit, generate_input_states, optimize_parameters, replace_param_gates_with_clifford
 
 
-num_qubits = 3
-correct_circuit = custom_random_circuit(num_qubits,20,gate_set = ['h','cx','cz','x','y','z','rx','ry','rz'])
+n_qubits = 3
+correct_circuit = custom_random_circuit(n_qubits,20,gate_set = ['h','cx','cz','x','y','z','rx','ry','rz'])
 bugged_circuit = generate_bugged_circuit(correct_circuit.copy(), error_rate=0.3)
 print("correct_circuit:")
 print(correct_circuit)
@@ -49,12 +49,12 @@ dev = qml.device("default.qubit", wires=n_wires)
 loss_history = []
 from tqdm import tqdm
 from random import randint
-num_params = circuit_tape.gate_paramize_size()
+n_params = circuit_tape.get_n_params()
 opt = optax.adam(learning_rate=0.1)
-params = jax.random.uniform(jax.random.PRNGKey(randint(0, 200)), (num_params,), minval = 0, maxval= jnp.pi * 2)
+params = jax.random.uniform(jax.random.PRNGKey(randint(0, 200)), (n_params,), minval = 0, maxval= jnp.pi * 2)
 # params = jnp.array(circuit_tape.gate_params())
 
-print("num_params:", num_params)
+print("n_params:", n_params)
 opt_state = opt.init(params)
 
 with tqdm(total=50) as pbar:

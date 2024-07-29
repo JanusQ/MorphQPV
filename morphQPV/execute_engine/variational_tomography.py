@@ -23,21 +23,21 @@ def get_idling_backend():
         return idle_backend[0]
     except:
         return FakeHanoi()
-def get_device(num_qubits,dev_type='an'):
+def get_device(n_qubits,dev_type='an'):
     idle_backend = get_idling_backend()
     
     if dev_type == 'st':
-        dev = qml.device("default.qubit", wires=num_qubits, shots=1000)
+        dev = qml.device("default.qubit", wires=n_qubits, shots=1000)
     elif dev_type == 'an':
-        dev = qml.device("default.qubit", wires=num_qubits, shots=None)
+        dev = qml.device("default.qubit", wires=n_qubits, shots=None)
     elif dev_type == 'ibmq':
-        dev = qml.device('qiskit.ibmq', wires=num_qubits, backend=idle_backend.name,shots=10000)
+        dev = qml.device('qiskit.ibmq', wires=n_qubits, backend=idle_backend.name,shots=10000)
     elif dev_type == 'ibmnoiseqasm':
         noise_model = NoiseModel.from_backend(idle_backend)
-        dev = qml.device('qiskit.aer', wires=num_qubits, noise_model=noise_model)
+        dev = qml.device('qiskit.aer', wires=n_qubits, noise_model=noise_model)
     return dev
 
-def estimate_input(process: list,num_qubits,input_qubits: Iterable,output_target,output_qubits=None,max_iterations=50,dev_type='st',preparation_type='state'):
+def estimate_input(process: list,n_qubits,input_qubits: Iterable,output_target,output_qubits=None,max_iterations=50,dev_type='st',preparation_type='state'):
     '''
         通过对process 进行多次初始化，得到 多个 output,其线性叠加对应与整个process 的函数
         process: 电路的中间表示
@@ -94,7 +94,7 @@ def estimate_input(process: list,num_qubits,input_qubits: Iterable,output_target
     return get_input_state(params), infids[-1],n_epsilons
 
 
-def estimate_output(process: list,num_qubits,output_qubits: Iterable,max_iterations=50,dev_type='an',preparation_type='state'):
+def estimate_output(process: list,n_qubits,output_qubits: Iterable,max_iterations=50,dev_type='an',preparation_type='state'):
     '''
         通过对process 进行多次初始化，得到 多个 output,其线性叠加对应与整个process 的函数
         process: 电路的中间表示
@@ -107,7 +107,7 @@ def estimate_output(process: list,num_qubits,output_qubits: Iterable,max_iterati
             initialState: statevector
             new_circuit: initialized circuits
     '''
-    dev = get_device(num_qubits,dev_type)
+    dev = get_device(n_qubits,dev_type)
     n_qubits = len(output_qubits)
     if preparation_type == 'mps':
         params = 1.57*np.ones(3*(n_qubits-1)-2)

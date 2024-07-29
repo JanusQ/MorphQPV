@@ -80,16 +80,16 @@ def infer_process(
     return sample_time, infer_time
 
 
-def output_tomography(circuit, num_qubits, real_state):
+def output_tomography(circuit, n_qubits, real_state):
     _, _, n = ExcuteEngine(circuit).output_tomography(
-        list(range(num_qubits)), real_state
+        list(range(n_qubits)), real_state
     )
     return n
 
 
-def state_tomography(circuit, num_qubits, real_state):
+def state_tomography(circuit, n_qubits, real_state):
     _, _, n = ExcuteEngine(circuit).input_tomography(
-        list(range(num_qubits)), real_state
+        list(range(n_qubits)), real_state
     )
     return n
 

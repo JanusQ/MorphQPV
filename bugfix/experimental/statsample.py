@@ -15,11 +15,11 @@ def get_statistical_sample(process,output_qubits=None):
 
 def pauli_gates(qubits):
     paulis = ['I','X','Y','Z']
-    num_qubits = len(qubits)
+    n_qubits = len(qubits)
     pauli_basis_gates = []
-    for pauli in product(paulis, repeat=num_qubits):
+    for pauli in product(paulis, repeat=n_qubits):
         gate = []
-        for i in range(num_qubits):
+        for i in range(n_qubits):
             if pauli[i] == 'I':
                 continue
             gate.append({

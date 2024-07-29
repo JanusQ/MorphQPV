@@ -123,17 +123,17 @@ class QuantumOptimizer:
 class Routing:
     def __init__(self) -> None:
         pass
-    def create_circuit(self,num_nodes: int = 3, num_vehs: int = 2) -> QuantumCircuit:
+    def create_circuit(self,n_nodes: int = 3, n_vehs: int = 2) -> QuantumCircuit:
         """Returns a quantum circuit solving a routing problem.
 
         Keyword arguments:
-        num_nodes -- number of to be visited nodes
-        num_vehs -- number of used vehicles
+        n_nodes -- number of to be visited nodes
+        n_vehs -- number of used vehicles
         """
 
         # Initialize the problem by defining the parameters
-        n = num_nodes  # number of nodes + depot (n+1)
-        k = num_vehs  # number of vehicles
+        n = n_nodes  # number of nodes + depot (n+1)
+        k = n_vehs  # number of vehicles
         # Initialize the problem by randomly generating the instance
         initializer = Initializer(n)
         xc, yc, instance = initializer.generate_instance()

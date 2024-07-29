@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 
 import numpy as np
 import cv2
-def get_data_mnist(mnist,num_qubits):
+def get_data_mnist(mnist,n_qubits):
     data, labels = mnist.data.numpy(), mnist.targets.numpy()
     # idx = [i for i in range(labels.shape[0]) if int(labels[i]) in [3, 6]]
     data = data / 255.0  # 归一化像素值
@@ -13,7 +13,7 @@ def get_data_mnist(mnist,num_qubits):
     labels_ = []
     for i in range(data.shape[0]):
         t = data[i].reshape((28, 28))
-        t = cv2.resize(t, (2**(num_qubits//2), 2**(num_qubits//2))).reshape((1, 2**(num_qubits)))
+        t = cv2.resize(t, (2**(n_qubits//2), 2**(n_qubits//2))).reshape((1, 2**(n_qubits)))
         norm = np.linalg.norm(t)
         if np.sum(t) > 0:
             t = t / norm
@@ -22,8 +22,8 @@ def get_data_mnist(mnist,num_qubits):
     data_ = np.concatenate(data_, axis=0)
     labels_ = np.array(labels_)
     ##save the data
-    np.save(f'data/minist_data_{num_qubits}.npy',data_)
-    np.save(f'data/minist_labels_{num_qubits}.npy',labels_)
+    np.save(f'data/minist_data_{n_qubits}.npy',data_)
+    np.save(f'data/minist_labels_{n_qubits}.npy',labels_)
     return data_, labels_
 
 def PCA_anlysis(data):
@@ -49,35 +49,35 @@ def strategy1minist(qubit_range=[4,6,8,10]):
     from torchvision import datasets, transforms
     Mnist = datasets.MNIST(root='data/minist', train=False, download=True,
                             transform=transforms.Compose([transforms.ToTensor()]))
-    for num_qubits in qubit_range:
-        X_test, y_test = get_data_mnist(Mnist,num_qubits)
+    for n_qubits in qubit_range:
+        X_test, y_test = get_data_mnist(Mnist,n_qubits)
         max_sample,lowDDataMat, redEigVects = PCA_anlysis(X_test)
         print(max_sample)
-        print(2**num_qubits*2)
-        print(max_sample/2**(num_qubits+1))
+        print(2**n_qubits*2)
+        print(max_sample/2**(n_qubits+1))
         yield max_sample
 
 
-def tomography_shots(num_qubits):
+def tomography_shots(n_qubits):
     ## this data is estimated from the variatial quantum tomography results for density matrix, unit: shots
     return {
         4: 300,
         6: 1000,
         8: 5000,
         10: 40000
-    }[num_qubits]
+    }[n_qubits]
 
-def strategy3_shots(num_qubits):
+def strategy3_shots(n_qubits):
     ## this formula is estimated from the variatial quantum tomography for distribution
-    return 2**(num_qubits-1)
+    return 2**(n_qubits-1)
 
-def strategy2_samples(num_qubits):
+def strategy2_samples(n_qubits):
     ## |x+y> = |x>|0> + |0>|y> so the samples is 2*2^(n/2)
-    return 2*2**(num_qubits//2)
+    return 2*2**(n_qubits//2)
 
-def original_samples(num_qubits):
+def original_samples(n_qubits):
     ## the original samples is 2^(n+1)
-    return 2**(num_qubits+1)
+    return 2**(n_qubits+1)
 
 def plot_results():
     #convert to pandas dataframe

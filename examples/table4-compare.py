@@ -76,20 +76,20 @@ def clliford_prepare(n_qubits):
 
 
 def standard_test(
-    assertionfunc, state_prepare, right_circuit, bad_circuit, num_qubits, input_num=10
+    assertionfunc, state_prepare, right_circuit, bad_circuit, n_qubits, input_num=10
 ):
     for j in range(input_num):
-        heads = state_prepare(num_qubits)
+        heads = state_prepare(n_qubits)
         real_output_state = ExcuteEngine.excute_on_pennylane(
             heads + right_circuit, type="statevector"
         )
         verify_right, spend_gates = assertionfunc(
-            heads, right_circuit, real_output_state, num_qubits
+            heads, right_circuit, real_output_state, n_qubits
         )
         if not verify_right:
             return 0, spend_gates
         is_right, spend_gates = assertionfunc(
-            heads, bad_circuit, real_output_state, num_qubits
+            heads, bad_circuit, real_output_state, n_qubits
         )
         if not is_right:
             return 1, spend_gates
@@ -101,7 +101,7 @@ def standard_mean_test(
     state_prepare,
     right_circuit,
     bad_circuit,
-    num_qubits,
+    n_qubits,
     total_round=10,
     input_num=3,
 ):
@@ -113,7 +113,7 @@ def standard_mean_test(
                     state_prepare,
                     right_circuit,
                     bad_circuit,
-                    num_qubits,
+                    n_qubits,
                     input_num,
                 )
                 for i in range(total_round)
@@ -124,10 +124,10 @@ def standard_mean_test(
     return res
 
 
-def proj_assertion(heads, layer_circuit, real_output_state, num_qubits):
+def proj_assertion(heads, layer_circuit, real_output_state, n_qubits):
     ## proj test
     proj_circuit, fake_gates = proj.assertion(
-        real_output_state, list(range(num_qubits))
+        real_output_state, list(range(n_qubits))
     )
     circuit_obj = ExcuteEngine(fake_gates)
     proj_gates = circuit_obj.gates_num
@@ -138,10 +138,10 @@ def proj_assertion(heads, layer_circuit, real_output_state, num_qubits):
     return abs(1 - proj_measurements[0]) < 1e-2, proj_gates * 5
 
 
-def ndd_assertion(heads, layer_circuit, real_output_state, num_qubits):
+def ndd_assertion(heads, layer_circuit, real_output_state, n_qubits):
     ## proj test
     proj_circuit, fake_gates, ancliqubit = ndd.assertion(
-        real_output_state, list(range(num_qubits))
+        real_output_state, list(range(n_qubits))
     )
     circuit_obj = ExcuteEngine(fake_gates)
     proj_gates = circuit_obj.gates_num
@@ -154,7 +154,7 @@ def ndd_assertion(heads, layer_circuit, real_output_state, num_qubits):
     return abs(1 - proj_measurements[0]) < 1e-2, proj_gates * 5
 
 
-def morph_assertion(heads, layer_circuit, real_output_state, num_qubits):
+def morph_assertion(heads, layer_circuit, real_output_state, n_qubits):
     output_state = ExcuteEngine.excute_on_pennylane(
         heads + layer_circuit, type="density"
     )
@@ -162,7 +162,7 @@ def morph_assertion(heads, layer_circuit, real_output_state, num_qubits):
     return fid > 0.98, ExcuteEngine(heads).gates_num * 5
 
 
-def quito_assertion(heads, layer_circuit, real_output_state, num_qubits):
+def quito_assertion(heads, layer_circuit, real_output_state, n_qubits):
     real_distribution = np.abs(real_output_state) ** 2
     stat_shots = stat.assertion(real_output_state)
     stat_measurements = ExcuteEngine.excute_on_pennylane(
@@ -174,7 +174,7 @@ def quito_assertion(heads, layer_circuit, real_output_state, num_qubits):
     return stat_verify, 5
 
 
-def stat_assertion(heads, layer_circuit, real_output_state, num_qubits):
+def stat_assertion(heads, layer_circuit, real_output_state, n_qubits):
     real_distribution = np.abs(real_output_state) ** 2
     stat_shots = stat.assertion(real_output_state)
     stat_measurements = ExcuteEngine.excute_on_pennylane(
@@ -186,16 +186,16 @@ def stat_assertion(heads, layer_circuit, real_output_state, num_qubits):
     return stat_verify, 5
 
 
-def test_assertion(name, num_qubits, assertionfunc=proj_assertion):
-    right_layer_circuit = layer_circuit_generator(name, num_qubits)
-    heads = standard_state_prepare(num_qubits)
+def test_assertion(name, n_qubits, assertionfunc=proj_assertion):
+    right_layer_circuit = layer_circuit_generator(name, n_qubits)
+    heads = standard_state_prepare(n_qubits)
     if assertionfunc(
         heads,
         right_layer_circuit,
         ExcuteEngine.excute_on_pennylane(
             heads + right_layer_circuit, type="statevector"
         ),
-        num_qubits,
+        n_qubits,
     )[0]:
         print("test pass")
     else:
@@ -203,16 +203,16 @@ def test_assertion(name, num_qubits, assertionfunc=proj_assertion):
 
 
 @ray.remote
-def profilling_methods(name, num_qubits, earlystop=True):
-    right_layer_circuit = layer_circuit_generator(name, num_qubits)
-    bad_layer_circuit = gate_add_generator(right_layer_circuit, num_qubits)
+def profilling_methods(name, n_qubits, earlystop=True):
+    right_layer_circuit = layer_circuit_generator(name, n_qubits)
+    bad_layer_circuit = gate_add_generator(right_layer_circuit, n_qubits)
     minimal_gates_num = ExcuteEngine(bad_layer_circuit).gates_num
     quito_confidence, quito_gates = standard_mean_test(
         quito_assertion,
         standard_state_prepare,
         right_layer_circuit,
         bad_layer_circuit,
-        num_qubits,
+        n_qubits,
         total_round=50
     )
     print(f"quito confidence {quito_confidence}  gates num {quito_gates}")
@@ -221,7 +221,7 @@ def profilling_methods(name, num_qubits, earlystop=True):
         ndd_confidence = "/"
         ndd_gates = "/"
     else:
-        if earlystop and num_qubits > 5:
+        if earlystop and n_qubits > 5:
             ndd_confidence = 100
             ndd_gates = "over $10^5$"
         else:
@@ -230,7 +230,7 @@ def profilling_methods(name, num_qubits, earlystop=True):
                 standard_state_prepare,
                 right_layer_circuit,
                 bad_layer_circuit,
-                num_qubits,
+                n_qubits,
                 total_round=5
             )
             ndd_confidence *= 100
@@ -241,12 +241,12 @@ def profilling_methods(name, num_qubits, earlystop=True):
         clliford_prepare,
         right_layer_circuit,
         bad_layer_circuit,
-        num_qubits,
+        n_qubits,
     )
     print(f"morph confidence {morph_confidence}  gates num {morph_gates}")
     with open(f"{resultspath}overhead.csv", "a") as f:
         f.write(
-            f"{name},{num_qubits},{quito_confidence*100},{ndd_confidence},{morph_confidence*100},{quito_gates},{ndd_gates},{morph_gates}\n"
+            f"{name},{n_qubits},{quito_confidence*100},{ndd_confidence},{morph_confidence*100},{quito_gates},{ndd_gates},{morph_gates}\n"
         )
 
 
@@ -257,7 +257,7 @@ if __name__ == "__main__":
         os.mkdir(resultspath)
     with open(f"{resultspath}overhead.csv", "w") as f:
         f.write(
-            "name,num_qubits,quito_confidence,ndd_confidence,morph_confidence,quito_gates_num,ndd_gates_num,morph_gates_num\n"
+            "name,n_qubits,quito_confidence,ndd_confidence,morph_confidence,quito_gates_num,ndd_gates_num,morph_gates_num\n"
         )
     import argparse
 

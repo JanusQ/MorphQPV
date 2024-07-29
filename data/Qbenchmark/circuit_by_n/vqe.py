@@ -33,9 +33,9 @@ class VQE:
             return "I"
 
     def generate_trainable_circuit(self):
-        self.circuit = EfficientSU2(num_qubits=self.k, entanglement='linear')
+        self.circuit = EfficientSU2(n_qubits=self.k, entanglement='linear')
         self.circuit = transpile(self.circuit, basis_gates=['cx', 'rz', 'sx', 'id', 'x'])
-        n_param = self.circuit.num_parameters
+        n_param = self.circuit.n_parameters
         # print(n_param)
         self.circuit = self.circuit.assign_parameters(np.random.rand(n_param) * np.pi)
     def gen_circuit(self):

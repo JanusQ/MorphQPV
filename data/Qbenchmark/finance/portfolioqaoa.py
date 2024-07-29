@@ -16,18 +16,18 @@ if TYPE_CHECKING:  # pragma: no cover
     from qiskit import QuantumCircuit
 
 
-def create_circuit(num_qubits: int) -> QuantumCircuit:
+def create_circuit(n_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit of QAOA applied to a specific portfolio optimization task.
 
     Keyword arguments:
-    num_qubits -- number of qubits of the returned quantum circuit
+    n_qubits -- number of qubits of the returned quantum circuit
     """
 
     # set number of assets (= number of qubits)
-    num_assets = num_qubits
+    n_assets = n_qubits
 
     # Generate expected return and covariance matrix from (random) time-series
-    stocks = [("TICKER%s" % i) for i in range(num_assets)]
+    stocks = [("TICKER%s" % i) for i in range(n_assets)]
     data = RandomDataProvider(
         tickers=stocks,
         start=datetime.datetime(2016, 1, 1),
@@ -38,7 +38,7 @@ def create_circuit(num_qubits: int) -> QuantumCircuit:
     sigma = data.get_period_return_covariance_matrix()
 
     q = 0.5  # set risk factor
-    budget = num_assets // 2  # set budget
+    budget = n_assets // 2  # set budget
 
     portfolio = PortfolioOptimization(expected_returns=mu, covariances=sigma, risk_factor=q, budget=budget)
     qp = portfolio.to_quadratic_program()

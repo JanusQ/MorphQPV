@@ -43,10 +43,10 @@ def tensor_product(*matrices):
         return matrices[-1]@ tensor_product(*matrices[:-1])
 
 ## define the linear combination of the unitaries circuit
-def generate_pauli_unitaries(num_qubits):
+def generate_pauli_unitaries(n_qubits):
     
     paulis = [qml.PauliX, qml.PauliY,qml.PauliZ,qml.Identity]
-    for i,pauliset in enumerate(product(paulis, repeat=num_qubits)):
+    for i,pauliset in enumerate(product(paulis, repeat=n_qubits)):
         gate = tensor_product([pauli(4+i) for i,pauli in enumerate(pauliset)])
         yield gate
 

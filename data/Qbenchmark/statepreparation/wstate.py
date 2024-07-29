@@ -5,13 +5,13 @@ from qiskit import QuantumCircuit, QuantumRegister
 
 class WState(QuantumCircuit):
     """W state preparation circuit."""
-    def __init__(self,num_qubits) -> None:
-        self.num_qubits = num_qubits
-        super().__init__(num_qubits)
+    def __init__(self,n_qubits) -> None:
+        self.n_qubits = n_qubits
+        super().__init__(n_qubits)
         self.x(self.qubits[-1])
-        for m in range(1, num_qubits):
-            self.f_gate(num_qubits - m, num_qubits - m - 1, num_qubits, m)
-        for k in reversed(range(1, num_qubits)):
+        for m in range(1, n_qubits):
+            self.f_gate(n_qubits - m, n_qubits - m - 1, n_qubits, m)
+        for k in reversed(range(1, n_qubits)):
             self.cx(k - 1, k)
         self.name = "wstate"
 

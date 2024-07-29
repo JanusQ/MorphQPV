@@ -15,17 +15,17 @@ class HamiltonianSimulation:
 
     def __init__(self, width: int, time_step: int = 1, total_time: int = 1) -> None:
         """Args:
-        num_qubits: int
+        n_qubits: int
             Size of the TFIM chain, equivalent to the number of qubits.
         time_step: int
             Size of the timestep in attoseconds.
         total_time:
             Total simulation time of the TFIM chain in attoseconds.
         """
-        self.num_qubits = width
+        self.n_qubits = width
         self.time_step = time_step
         self.total_time = total_time
-        self.circuit =  QuantumCircuit(self.num_qubits)
+        self.circuit =  QuantumCircuit(self.n_qubits)
 
     def gen_circuit(self) -> QuantumCircuit:
         """Generate a self.circuit to simulate the evolution of an n-qubit TFIM
@@ -56,14 +56,14 @@ class HamiltonianSimulation:
 
             # Single qubit terms
             psi = -2.0 * e_ph * np.cos(w_ph * t) * self.time_step / hbar
-            for qubit in range(self.num_qubits):
+            for qubit in range(self.n_qubits):
                 self.circuit.h(qubit)
                 self.circuit.rz(psi, qubit)
                 self.circuit.h(qubit)
 
             # Coupling terms
             psi2 = -2.0 * jz * self.time_step / hbar
-            for i in range(self.num_qubits - 1):
+            for i in range(self.n_qubits - 1):
                 self.circuit.cx(i, i + 1)
                 self.circuit.rz(psi2, i + 1)
                 self.circuit.cx(i, i + 1)

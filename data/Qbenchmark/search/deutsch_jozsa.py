@@ -63,7 +63,7 @@ def create_circuit(n: int, balanced: bool = True) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Deutsch-Josza algorithm.
 
     Keyword arguments:
-    num_qubits -- number of qubits of the returned quantum circuit
+    n_qubits -- number of qubits of the returned quantum circuit
     balanced -- True for a balanced and False for a constant oracle
     """
 
@@ -76,10 +76,10 @@ def create_circuit(n: int, balanced: bool = True) -> QuantumCircuit:
     return qc
 
 class DeutschJozsa:
-    def __init__(self, num_qubits: int, balanced: bool = True):
-        self.num_qubits = num_qubits
+    def __init__(self, n_qubits: int, balanced: bool = True):
+        self.n_qubits = n_qubits
         self.balanced = balanced
-        self.circuit = create_circuit(num_qubits, balanced)
+        self.circuit = create_circuit(n_qubits, balanced)
 
     def gen_circuit(self):
         return self.circuit

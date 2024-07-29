@@ -26,18 +26,18 @@ def get_examplary_max_cut_qp(n_nodes: int, degree: int = 2) -> QuadraticProgram:
     maxcut = Maxcut(graph)
     return maxcut.to_quadratic_program()
 
-def create_circuit(num_qubits: int) -> QuantumCircuit:
+def create_circuit(n_qubits: int) -> QuantumCircuit:
     """Returns a quantum circuit implementing the Variational Quantum Eigensolver Algorithm for a specific max-cut
      example.
 
     Keyword arguments:
-    num_qubits -- number of qubits of the returned quantum circuit
+    n_qubits -- number of qubits of the returned quantum circuit
     """
 
-    qp = get_examplary_max_cut_qp(num_qubits)
+    qp = get_examplary_max_cut_qp(n_qubits)
     assert isinstance(qp, QuadraticProgram)
 
-    ansatz = RealAmplitudes(num_qubits, reps=2)
+    ansatz = RealAmplitudes(n_qubits, reps=2)
     vqe = VQE(ansatz=ansatz, optimizer=SLSQP(maxiter=25), estimator=Estimator())
     vqe_result = vqe.compute_minimum_eigenvalue(qp.to_ising()[0])
     qc = vqe.ansatz.bind_parameters(vqe_result.optimal_point)

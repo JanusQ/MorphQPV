@@ -26,9 +26,9 @@ def profilling_qubit(n_qubit, method):
     return num
 
 def scale_profilling(qubit_range, method):
-    # ray.init(ignore_reinit_error=True, num_cpus=4)
+    # ray.init(ignore_reinit_error=True, n_cpus=4)
     with open(f"{resultspath}quantumlock.csv", "w") as f:
-        f.write("num_qubits,bases\n")
+        f.write("n_qubits,bases\n")
     # nimimal_nums = ray.get(
     #     [profilling_qubit.remote(qubit_num, method) for qubit_num in qubit_range]
     # )
@@ -46,8 +46,8 @@ def plot_scale_profilling():
     import matplotlib as mpl
 
     data = pd.read_csv(f"{resultspath}quantumlock.csv")
-    data.sort_values(by="num_qubits", inplace=True)
-    n_qubits = data.num_qubits
+    data.sort_values(by="n_qubits", inplace=True)
+    n_qubits = data.n_qubits
     Ns = 2**n_qubits
     ## qutio uses a fixed number of test cases generated in advance, that is, Ns
     qutio = Ns

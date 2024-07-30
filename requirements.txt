@@ -23,3 +23,7 @@ tqdm==4.65.0
 opencv-python==4.9.0.80
 opencv-python-headless==4.9.0.80
 gurobipy==11.0.0
+openai
+bqskit
+z3
+optax

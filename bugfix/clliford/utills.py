@@ -2,7 +2,7 @@ import numpy as np
 from z3 import *
 from typing import List, Tuple
 from qiskit import QuantumCircuit, transpile
-from qiskit.quantum_info import random_clifford
+from qiskit.quantum_info import random_clifford,Clifford
 
 
 class StabilizerTable:
@@ -149,7 +149,18 @@ class StabilizerTable:
         else:
             return "\n".join([stabilizers_section, destabilizers_section])
 
-
+    def to_dict(self):
+        """
+        Converts the StabilizerTable to a dictionary for JSON serialization.
+        """
+        return {
+            'n': self.n,
+            'X': self.X.tolist(),
+            'Z': self.Z.tolist(),
+            'P': self.P.tolist()
+        }
+        
+        
 class CllifordProgram(list):
     def __init__(self, n_qubits: int):
         super().__init__()
@@ -183,7 +194,8 @@ class CllifordProgram(list):
     def sdg(self, qubit):
         for _ in range(3):
             self.append(['S', qubit])
-
+    def id(self, qubit):
+        self.append(['I', qubit])
     def cz(self, control, target):
         self.append(['H', target])
         self.append(['CNOT', (control, target)])
@@ -225,6 +237,8 @@ class CllifordProgram(list):
                 output_stabilizer_table.apply_cnot(gate[1][0], gate[1][1])
             elif gate[0] == 'Y':
                 output_stabilizer_table.apply_y(gate[1])
+            elif gate[0] == 'I':
+                pass
             else:
                 raise ValueError("Invalid gate type: {}".format(gate[0]))
             # print(output_stabilizer_table.to_string())
@@ -244,6 +258,8 @@ class CllifordProgram(list):
                 circuit.cx(gate[1][0], gate[1][1])
             elif gate[0] == 'Y':
                 circuit.y(gate[1])
+            elif gate[0] == 'I':
+                circuit.id(gate[1])
             else:
                 raise ValueError("Invalid gate type: {}".format(gate[0]))
         return circuit
@@ -271,6 +287,8 @@ class CllifordProgram(list):
                 program.y(qubitindex)
             elif inst.name.lower() == "z":
                 program.z(qubitindex)
+            elif inst.name.lower() == "id":
+                program.id(qubitindex)
             elif inst.name.lower() == "cz":
                 program.cz(qubitindex, circuit.find_bit(qargs[1])[0])
             elif inst.name.lower() == "cx" or inst.name.lower() == "cnot":
@@ -282,7 +300,8 @@ class CllifordProgram(list):
                                0], circuit.find_bit(qargs[0])[0])])
                 program.append(['CNOT', (circuit.find_bit(qargs[0])[
                                0], circuit.find_bit(qargs[1])[0])])
-            elif inst.name.lower() in ("barrier", "id"):
+                
+            elif inst.name.lower() in ("barrier"):
                 pass
             else:
                 raise ValueError("Invalid gate type: {}".format(inst.name))
@@ -345,6 +364,7 @@ def generate_inout_stabilizer_tables(n_qubits: int, program: CllifordProgram):
 
 def custom_random_circuit(n_qubits, depth, gate_set):
     qc = QuantumCircuit(n_qubits)
+    depth = depth // 2
     for _ in range(depth):
         for qubit in range(n_qubits):
             gate = np.random.choice(gate_set)
@@ -376,5 +396,8 @@ def custom_random_circuit(n_qubits, depth, gate_set):
                     target = (qubit + 1) % n_qubits
                     qc.cz(qubit, target)
         # qc.barrier()
-    qc = transpile(qc, basis_gates=gate_set, optimization_level=3)
+    qc = qc.compose(qc.inverse())
+    for i in range(n_qubits):
+        qc.x(i)
+    # qc = transpile(qc, basis_gates=gate_set, optimization_level=3)
     return qc

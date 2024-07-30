@@ -24,6 +24,7 @@ correct_circuit = custom_random_circuit(
 
 bugged_circuit = generate_bugged_circuit(
     correct_circuit.copy(), 3)
+
 print("correct_circuit:")
 print(correct_circuit)
 print("Bugged Circuit:")

@@ -11,13 +11,13 @@ from bugfix.paramizefix.pennylane_siwei import generate_input_states as generate
 from bugfix.paramizefix.qiskit import apply_circuit, generate_bugged_circuit, generate_input_states, optimize_parameters, replace_param_gates_with_clifford
 
 
-n_qubits = 3
+n_qubits = 2
 correct_circuit = custom_random_circuit(
-    n_qubits, 5, gate_set=['h', 'cx', 'cz', 'rx', 'ry', 'rz']) # 'x', 'y', 'z', 
+    n_qubits, 5, gate_set=['h', 'cx','rx', 'ry', 'rz']) # 'x', 'y', 'z', 
 
 
 bugged_circuit = generate_bugged_circuit(
-    correct_circuit.copy(), error_rate=0.3)
+    correct_circuit.copy(), n_errors= 2)
 print("correct_circuit:")
 print(correct_circuit)
 print("Bugged Circuit:")
@@ -45,7 +45,7 @@ find_program = correcter.solve(100)
 # 找不到就用旧的
 if find_program is None:
     find_program = program
-
+find_program = program
 for input_stabilizer_table, output_stabilizer_table in zip(inputs, outputs):
     predict_out = find_program.output_stablizers(input_stabilizer_table)
     assert predict_out.is_eq(output_stabilizer_table)

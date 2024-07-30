@@ -185,7 +185,8 @@ class Circuit(list):
 
     def to_qiskit(self, barrier=True) -> QuantumCircuit:
         return circuit_to_qiskit(self, barrier=barrier)
-
+    def to_qasm(self,filename,barrier=True) -> str:
+        return circuit_to_qiskit(self).qasm(filename=filename)
     def to_pennylane(self):
 
         return
@@ -280,7 +281,21 @@ class Circuit(list):
         return new_circuit
 
     
-
+    def reverse_bits(self):
+        new_circuit: Circuit = self.copy()
+        for gate in new_circuit.gates:
+            gate['qubits'] = [new_circuit.n_qubits - qubit - 1  for qubit in gate['qubits']]
+        new_circuit = Circuit(new_circuit)
+        return new_circuit
+    
+    
+    def to_json(self):
+        new_circuit: Circuit = self.copy()
+        for gate in new_circuit.gates:
+            gate['params'] = list(gate['params'])
+        new_circuit = Circuit(new_circuit)
+        return new_circuit
+    
 
 def circuit_to_qiskit(circuit: Circuit, barrier=True) -> QuantumCircuit:
     qiskit_circuit = QuantumCircuit(circuit.n_qubits)

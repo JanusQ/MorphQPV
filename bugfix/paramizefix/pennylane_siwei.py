@@ -105,8 +105,8 @@ class GateParameterOptimizer:
             new_circuit.append(new_layer)
 
         circuit = Circuit(new_circuit, circuit.n_qubits)
-        print('optimized circuit')
-        print(circuit)
+        # print('optimized circuit')
+        # print(circuit)
         return GateParameterOptimizer(circuit)
 
     def get_n_params(self):
@@ -182,7 +182,7 @@ class GateParameterOptimizer:
                 if opt_history.should_break:
                     break
 
-        return assign_params(opt_history.best_params, self.circuit)
+        return assign_params(opt_history.best_params, self.circuit), opt_history.min_loss
 
     def optimize_target_unitary(self, target_unitary: jnp.ndarray, n_epochs=50, lr=0.1):
         n_params = self.get_n_params()
@@ -199,7 +199,7 @@ class GateParameterOptimizer:
             return matrix_distance_squared(self.circuit.matrix(params), target_unitary)
 
         opt_history = OptimizingHistory(
-            params, lr, 0.001, 400, n_epochs, 0.01, False)
+            params, lr, 0.001, 200, n_epochs, 0.01, False)
 
         with tqdm(total=n_epochs) as pbar:
             for epoch in range(n_epochs):
@@ -227,7 +227,7 @@ def assign_params(params, circuit: Circuit) -> Circuit:
     for gates in circuit:
         for gate in gates:
             for index, _ in enumerate(gate['params']):
-                gate['params'] = np.array(gate['params'])
+                gate['params'] = np.array(gate['params'], dtype=np.float64)
                 gate['params'][index] = params[count]
                 count += 1
     return circuit

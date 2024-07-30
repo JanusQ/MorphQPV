@@ -6,7 +6,6 @@ import pickle
 n_qubits = 20
 qc_correct, qc_error = [],[]
 for i in range(50):
-    
     correct_circuit = custom_random_circuit(n_qubits,5,gate_set = ['h','cx','cz','x','y','z','rx','ry','rz'])
     # correct_circuit = random_circuit(n_qubits, depth=5, max_operands=2)
     bugged_circuit = generate_bugged_circuit(correct_circuit.copy(), error_rate=0.3)

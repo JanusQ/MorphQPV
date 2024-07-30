@@ -83,6 +83,7 @@ def replace_param_gates_with_clifford(circuit):
                     nearest_distance = distance
             new_circuit.append(nearest_gate(), qargs, cargs)
         elif len(qargs) == 2:
+            # print(inst.name)
             assert inst.name == 'cx'
             new_circuit.append(inst, qargs, cargs)
         

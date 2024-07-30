@@ -1,3 +1,6 @@
+scp -r MorphQPV/ jqf@192.168.34.162:~/MorphQPV1
+
+
 ## MorphQPV
 language: English | [中文](doc/README.zh-CN.md)
 

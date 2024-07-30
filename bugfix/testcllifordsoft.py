@@ -1,7 +1,7 @@
 
 if __name__ == "__main__":
     from clliford.utills import generate_inout_stabilizer_tables,CllifordProgram
-    from clliford.clliford_gate_variables import CllifordCorrecter
+    from clliford.cllifor_gate_parr import CllifordCorrecter
     from qiskit import QuantumCircuit
     from qiskit.quantum_info import Clifford,random_clifford
     ## 测试要逼近的电路
@@ -14,7 +14,8 @@ if __name__ == "__main__":
     for _ in range(50):
         input_stabilizer_table, output_stabilizer_table = generate_inout_stabilizer_tables(n_qubits,program)
         inputs.append(input_stabilizer_table)
-        correcter.add_iout(input_stabilizer_table,output_stabilizer_table)
+        outputs.append(output_stabilizer_table)
+    correcter.add_iout(inputs,inputs)
     ## 求解得到的程序
     find_program = correcter.solve()
     print('find program\n',find_program.to_circuit())
@@ -22,8 +23,8 @@ if __name__ == "__main__":
         print('input')
         print(input_stabilizer_table.to_string())
         print('real output')
-        solver = CllifordCorrecter(n_qubits,len(find_program))
-        solver_out = solver.inference(input_stabilizer_table, find_program)
+        solver_out = program.output_stablizers(input_stabilizer_table)
+    # return input_stabilizer_table, output_stabilizer_table
         assert solver_out.is_eq(output_stabilizer_table)
     
 

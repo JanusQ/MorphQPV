@@ -17,6 +17,7 @@ from bugfix.paramizefix.pennylane_siwei import generate_input_states as generate
 from bugfix.paramizefix.qiskit import apply_circuit, generate_bugged_circuit, generate_input_states, optimize_parameters, replace_param_gates_with_clifford
 import json
 from time import perf_counter
+import numpy as np
 import ray
 import time
 
@@ -51,7 +52,7 @@ def repair(correct_circuit, bugged_circuit,n_qubits, n_errors,id):
 
         program: LayerCllifordProgram = LayerCllifordProgram.from_qiskit_circuit(bugged_clifford)  # TODO: n_layers
         correct_program = LayerCllifordProgram.from_qiskit_circuit(correct_clliford)  # TODO: n_layers
-        correcter = CllifordCorrecter(program, time_out_eff = 10, is_soft= True, insert_layer_indexes= [i for i in range(len(program))])
+        correcter = CllifordCorrecter(program, time_out_eff = 1, is_soft= True, insert_layer_indexes= np.random.choice([i for i in range(len(program))],min(3,len(program)),replace=False).tolist())
         inputs, outputs = [], []
         for _ in tqdm(range(min(2**n_qubits//2, 20))):
             input_stabilizer_table, output_stabilizer_table = generate_inout_stabilizer_tables(
@@ -64,6 +65,7 @@ def repair(correct_circuit, bugged_circuit,n_qubits, n_errors,id):
         solve_program = correcter.solve()  # 60
         end = perf_counter()
         metrics[f'clliford_time_{i}'] = end - start
+        print(f"clliford_time_{i}:", end - start)
         new_program = program.copy()
         # 找不到就用旧的
         if solve_program:
@@ -72,8 +74,9 @@ def repair(correct_circuit, bugged_circuit,n_qubits, n_errors,id):
 
         correct_circuit = Circuit(correct_circuit)
         optimizer = GateParameterOptimizer.from_circuit(find_program)
+        # input_states = generate_input_states(n_qubits, n_states=min(2**n_qubits//2, 100))
         start = perf_counter()
-        repaired_circuit, dist = optimizer.optimize_target_unitary(correct_circuit.matrix(), n_epochs=1000)
+        repaired_circuit, dist = optimizer.optimize_minor(correct_circuit, n_epochs=1000)
         end = perf_counter()
         metrics[f'param_time_{i}'] = end - start
 
@@ -142,13 +145,13 @@ if __name__ == '__main__':
     ## set the parralle threads number
     ray.init(num_cpus=10)
     futures = []
-    for n_qubits in [5]:
+    for n_qubits in [20]:
         for n_errors in [4, 6]:
             qcs = load_dataset(n_qubits, n_errors)
             assert len(qcs) == 100
             qc_corrects, qc_bugs = qcs[:50], qcs[50:]
-            # futures +=[repair_remote.remote(qc_correct, qc_bug,n_qubits, n_errors,id=i) for i, (qc_correct, qc_bug) in enumerate(zip(qc_corrects, qc_bugs))]
-            [repair(qc_correct, qc_bug,n_qubits, n_errors,id=i) for i, (qc_correct, qc_bug) in enumerate(zip(qc_corrects, qc_bugs))]
+            futures +=[repair_remote.remote(qc_correct, qc_bug,n_qubits, n_errors,id=i) for i, (qc_correct, qc_bug) in enumerate(zip(qc_corrects, qc_bugs))]
+            # [repair(qc_correct, qc_bug,n_qubits, n_errors,id=i) for i, (qc_correct, qc_bug) in enumerate(zip(qc_corrects, qc_bugs))]
             time.sleep(1200)
     
     ray.get(futures)

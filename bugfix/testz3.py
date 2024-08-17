@@ -10,6 +10,8 @@ opt.set("timeout", 100000)
 x = Bool('x')
 y = Bool('y')
 z = Bool('z')
+nx = Bool('x')
+
 
 # Add hard constraints (these must be satisfied)
 opt.add(x == True)  # Example hard constraint

@@ -4,7 +4,6 @@ from typing import List, Tuple
 from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import random_clifford,Clifford
 
-
 class StabilizerTable:
     def __init__(self, n_qubits):
         self.n = n_qubits
@@ -14,29 +13,27 @@ class StabilizerTable:
         # Initialize the stabilizer table with Z operators
         for i in range(n_qubits):
             self.Z[i][i] = True  # Z on each qubit
-
+        
     def copy(self):
         new = StabilizerTable(self.n)
         new.X = self.X.copy()
         new.Z = self.Z.copy()
         new.P = self.P.copy()
         return new
-
-    def apply_hadamard(self, qubit):
-        # Swap X and Z for the given qubit
-        self.P ^= (self.X[:, qubit] & self.Z[:, qubit])
-        self.X[:, qubit], self.Z[:, qubit] = self.Z[:,
-                                                    qubit].copy(), self.X[:, qubit].copy()
-        # P \xor X[qubit]*Z[qubit]
-
-    def apply_phase(self, qubit):
-        # S gate (phase gate) on a qubit
-        self.P ^= (self.X[:, qubit] & self.Z[:, qubit])
-        self.Z[:, qubit] ^= self.X[:, qubit]
-
-    def apply_y(self, qubit):
-        # Y gate on a qubit
-        self.P ^= (self.X[:, qubit] ^ self.Z[:, qubit])
+    
+    def apply_cz(self, control, target):
+        # clifford.phase ^= x0 & x1 & (z0 ^ z1)
+        # z1 ^= x0
+        # z0 ^= x1
+        # Apply CZ gate from control to target
+        for i in range(self.n):
+            self.P[i] ^= (self.X[i, control] & self.X[i, target]  & (self.Z[i, control] ^ self.Z[i, target]))
+        self.Z[:, target] ^= self.X[:, control]
+        self.Z[:, control] ^= self.X[:, target]
+    
+    def apply_swap(self, qubit1, qubit2):
+        self.Z[:, qubit1], self.Z[:, qubit2] = self.Z[:, qubit2].copy(), self.Z[:, qubit1].copy()
+        self.X[:, qubit1], self.X[:, qubit2] = self.X[:, qubit2].copy(), self.X[:, qubit1].copy()
 
     def apply_cnot(self, control, target):
         # Apply CNOT gate from control to target
@@ -45,35 +42,60 @@ class StabilizerTable:
                 self.X[i, target] ^ self.Z[i, control] ^ True))
         self.X[:, target] ^= self.X[:, control]
         self.Z[:, control] ^= self.Z[:, target]
+        
+    def apply_hadamard(self, qubit):
+        # Swap X and Z for the given qubit
+        self.P ^= (self.X[:, qubit] & self.Z[:, qubit])
+        self.X[:, qubit], self.Z[:, qubit] = self.Z[:,qubit].copy(), self.X[:, qubit].copy()
+        # P \xor X[qubit]*Z[qubit]
 
+    def apply_phase(self, qubit):
+        # S gate (phase gate) on a qubit
+        self.P ^= (self.X[:, qubit] & self.Z[:, qubit])
+        self.Z[:, qubit] ^= self.X[:, qubit]
+        
+    def apply_sdg(self, qubit):
+        # Sdg gate (inverse phase gate) on a qubit
+        self.P ^= (self.X[:, qubit] & ~(self.Z[:, qubit]))
+        self.Z[:, qubit] ^= self.X[:, qubit]
+    
+    def apply_x(self, qubit):
+        # X gate on a qubit
+        self.P ^= self.Z[:, qubit]
+    
+    def apply_y(self, qubit):
+        # Y gate on a qubit
+        self.P ^= (self.X[:, qubit] ^ self.Z[:, qubit])
+    def apply_sx(self, qubit):
+        self.P ^= ~self.X[:, qubit] & self.Z[:, qubit]
+        self.X[:, qubit] ^= self.Z[:, qubit]
+
+    def apply_sxdg(self, qubit):
+        self.P ^= self.X[:, qubit] & self.Z[:, qubit]
+        self.X[:, qubit] ^= self.Z[:, qubit]
+        
+
+    def apply_z(self, qubit):
+        # Z gate on a qubit
+        self.P ^= self.X[:, qubit]
+        
     def apply_clifford(self, other):
         """
         Applies another stabilizer table (Clifford operator) to this one.
         """
-        new_X = np.zeros_like(self.X)
-        new_Z = np.zeros_like(self.Z)
-        new_P = np.zeros_like(self.P)
-
-        for i in range(self.n):
-            x_part = np.zeros(self.n, dtype=bool)
-            z_part = np.zeros(self.n, dtype=bool)
-            phase = False
-            for j in range(self.n):
-                # Applying the effect of Z[j] and X[j] from the other stabilizer
-                if self.X[i, j]:
-                    x_part ^= other.Z[j, :]
-                    z_part ^= other.X[j, :]
-                    phase ^= other.P[j]
-                if self.Z[i, j]:
-                    x_part ^= other.X[j, :]
-                    z_part ^= other.Z[j, :]
-            new_X[i, :] = x_part
-            new_Z[i, :] = z_part
-            new_P[i] = phase
-        self.X = new_X
-        self.Z = new_Z
-        self.P = new_P
-
+        if self.n != other.n:
+            raise ValueError("Stabilizer tables must have the same number of qubits to be composed.")
+        
+        composed = StabilizerTable(self.n)
+        
+        # Compose the symplectic matrices
+        composed.X = np.logical_xor(self.X @ other.X, self.Z @ other.Z)
+        composed.Z = np.logical_xor(self.X @ other.Z, self.Z @ other.X)
+        
+        # Update the phase vector
+        composed.P = np.logical_xor(self.P, np.logical_xor(other.P, (self.X @ other.P) & (self.Z @ other.P)))
+        
+        return composed
     @property
     def table(self):
         """
@@ -220,6 +242,36 @@ class CllifordProgram(list):
     def cnot(self, control, target):
         self.append(['CNOT', (control, target)])
 
+    def depth(self):
+        if self.depth is None:
+            self.depth = 0
+            ## reorganize the gates into layers
+            self.layers = []
+            for gate in self:
+                layer = []
+                qubits = [i for i in range(self.n_qubits)]
+                while qubits:
+                    if gate[0] == 'CNOT':
+                        if all(gate[1][i] not in qubits for i in range(2)):
+                            layer.append(gate)
+                            qubits.remove(gate[1][0])
+                            qubits.remove(gate[1][1])
+                        else:
+                            qubits = []
+                        
+                    elif gate[0] == 'CNOT' and gate[1][1] == qubits[0]:
+                        layer.append(gate)
+                        qubits.remove(gate[1][1])
+                        qubits.remove(gate[1][0])
+                        
+                    else:
+                        qubits.remove(qubits[0])
+                        
+                if gate[0] == 'H':
+                    layer.append(gate)
+                
+                
+        return self.depth
     def output_stablizers(self, input_stabilizer_table: StabilizerTable = None):
         """
         This function takes the input stabilizer table and outputs the stabilizers and destabilizers of the Clliford program.
@@ -401,3 +453,24 @@ def custom_random_circuit(n_qubits, depth, gate_set):
         qc.x(i)
     # qc = transpile(qc, basis_gates=gate_set, optimization_level=3)
     return qc
+
+
+if __name__ == '__main__':
+    table1 = StabilizerTable(2)
+    table1.apply_hadamard(1)
+    table1.apply_hadamard(0)
+    table1.apply_cnot(0, 1)
+
+    table2 = StabilizerTable(2)
+    table2.apply_phase(0)
+    table2.apply_cnot(1, 0)
+    
+    composed_table = table1.apply_clifford(table2)
+
+    # Print the resulting stabilizer table
+    print(composed_table.to_string())
+    
+    table1.apply_phase(0)
+    table1.apply_cnot(1, 0)
+    print(table1.to_string())
+    

@@ -32,7 +32,7 @@ def generate_input_states(n_qubits, n_states=8):
 
 
 class GateParameterOptimizer:
-    def __init__(self, circuit: Circuit):
+    def __init__(self, circuit: Circuit, right_circuit=None):
         self.circuit = circuit
 
         n_qubits = circuit.n_qubits
@@ -45,29 +45,28 @@ class GateParameterOptimizer:
             circuit_to_pennylane(circuit, params)
             return qml.probs()
 
+        
         self.run = run
 
     @staticmethod
-    def from_clifford_program(clifford_program: list[tuple[str, list]]):
+    def from_clifford_program(clifford_program: list[list[dict]]):
         """convert the clifford program to circuit_data"""
         n_qubits = clifford_program.n_qubits
 
         circuit = []
-        for inst, qubits in clifford_program:
-            if isinstance(qubits, int):
-                circuit.append([{
-                    'name': 'u3',
-                    'qubits': [qubits],
-                    'params': [0, 0, 0],
-                }])
-            elif inst.lower() in ("cnot", 'cx'):
-                circuit.append([{
-                    'name': 'cx',
-                    'qubits': qubits,
-                    'params': [],
-                }])
-            else:
-                raise ValueError("Invalid gate type: {}".format(inst.name))
+        for layer in clifford_program:
+            newlayer = []
+            for gate in layer:
+                if len(gate['qubits']) == 1:
+                    newlayer.append({
+                        'name': 'u3',
+                        'qubits': gate['qubits'],
+                        'params': [0,0,0],
+                        
+                    })
+                else:
+                    newlayer.append(gate)
+            circuit.append(newlayer)
 
         circuit = Circuit(circuit, n_qubits)
         return GateParameterOptimizer(circuit)
@@ -220,6 +219,55 @@ class GateParameterOptimizer:
 
         # return loss_history, opt_history.best_params
 
+    def optimize_minor(self, original_circuit: Circuit, n_epochs=50, n_batch=10, lr=0.1):
+        # input_states = jnp.array(input_states)
+        n_qubits = original_circuit.n_qubits
+        dev = qml.device("default.qubit", wires=original_circuit.n_qubits)
+        @jax.jit
+        @qml.qnode(dev, interface="jax")  # interface如果没有jax就不会有梯度
+        def mirror_run( params):
+            circuit_to_pennylane(self.circuit, params)
+            circuit_to_pennylane(original_circuit[::-1], params)
+            return qml.probs() 
+        self.mirror_run = mirror_run
+        
+        n_params = self.get_n_params()
+        print("n_params:", n_params)
+
+        opt = optax.adam(learning_rate=lr)
+        params = jax.random.uniform(jax.random.PRNGKey(
+            randint(0, 200)), (n_params,), minval=0, maxval=jnp.pi * 2)
+        # params = jnp.array(circuit_tape.gate_params())
+        opt_state = opt.init(params)
+
+        def loss_fn(params):
+            output_state = self.mirror_run(params)
+            return 1-output_state[0]
+        
+            # for input_state, target_output_state in zip(input_states, target_output_states):
+            #     output_state = self.run(input_state, params)
+            #     loss += jnp.mean(jnp.abs(output_state - target_output_state))
+            # return loss
+
+        opt_history = OptimizingHistory(
+            params, lr, 0.001, 500, n_epochs, 0.01, False)
+        with tqdm(total=n_epochs) as pbar:
+            for epoch in range(n_epochs):
+                loss_val, grads = jax.value_and_grad(loss_fn)(
+                    params)
+                updates, opt_state = opt.update(grads, opt_state)
+                params = optax.apply_updates(params, updates)
+
+                opt_history.update(loss_val, params)
+
+                pbar.update(1)
+                loss_val = round(float(loss_val), 7)
+                pbar.set_description(f"Loss: {loss_val}")
+
+                if opt_history.should_break:
+                    break
+
+        return assign_params(opt_history.best_params, self.circuit), opt_history.min_loss
 
 def assign_params(params, circuit: Circuit) -> Circuit:
     circuit = circuit.copy()

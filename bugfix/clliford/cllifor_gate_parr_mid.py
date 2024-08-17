@@ -21,15 +21,11 @@ def _n_half_pis(param) -> int:
 class ConstraintsGenerator:
     __slot__ = ['program', 'n', 'd_max', 'is_soft','singleq_gates', 'twoq_gates', 'basis_gates','soft_constraints', 'X', 'Z', 'P',
                 'Xvars','Zvars','Yvars','CZvars','CNOTvars','Svars','Hvars','SXvars','Sdgvars']
-    def __init__(self,bug_program:LayerCllifordProgram, singleq_gates:List[str]=['X','S','H'], twoq_gates:List[str]=['CNOT'], is_soft: bool=True , insert_layer_indexes:List[int]= None):
+    def __init__(self,num_qubits:int,singleq_gates:List[str]=['X','S','H'], twoq_gates:List[str]=['CNOT'], is_soft: bool=True):
         self.soft_constraints = []
-        self.program = bug_program
-        self.n = self.program.n_qubits
-        depth = self.program.depth()
-        if insert_layer_indexes is None:
-            insert_layer_indexes = np.random.choice(depth, 1, replace=False).tolist()
-        self.d_max = len(insert_layer_indexes)
-        self.insert_layer_indexes = insert_layer_indexes
+        self.n = num_qubits
+        self.program = []
+        self.d_max = 2
         self.singleq_gates = singleq_gates
         self.is_soft = is_soft
         self.twoq_gates = twoq_gates
@@ -175,13 +171,7 @@ class ConstraintsGenerator:
         """
         self.applyed_gates = True
         # print('Applying gates... can only used once')
-        for d,layer in enumerate(self.program):
-            for gate in layer:
-                self.apply_gate(gate['name'],gate['qubits'])
-            # self.simplify_tab()
-            if d not in self.insert_layer_indexes:
-                continue
-            didx = self.insert_layer_indexes.index(d)
+        for didx in range(self.d_max):
             for q in range(self.n):
                 for gate in self.singleq_gates:
                     self.apply_gate_var(gate,[q],getattr(self, gate + "vars")[q][didx])
@@ -391,8 +381,6 @@ class ConstraintsGenerator:
             # self.X[i][target] =  If(CXvar, self.X[i][target]^self.X[i][control], self.X[i][target])
             self.Z[i][control] =  Xor(self.Z[i][control], self.Z[i][target] & CXvar)
             # self.Z[i][control] =  If(CXvar, self.Z[i][control]^self.Z[i][target], self.Z[i][control])
-            
-            
     def apply_cx(self, qubits):
         control, target = qubits
         # Apply CNOT gate from control to target
@@ -413,13 +401,12 @@ def add_iout_parrelell(*args, **kwargs):
         raise e
     
 
-def _add_iout(n,input_stabilizer_table:StabilizerTable,output_stabilizer_table:StabilizerTable, program, **kwargs):
+def _add_iout(input_stabilizer_table:StabilizerTable,output_stabilizer_table:StabilizerTable, **kwargs):
     """
     Adds the input and output stabilizer tables to the program.
     """
     print('adding iout')
-    program = LayerCllifordProgram(n, program)
-    generator = ConstraintsGenerator(program,**kwargs)
+    generator = ConstraintsGenerator(**kwargs)
     generator.set_in(input_stabilizer_table)
     generator.apply_gates()
     return generator.set_out(output_stabilizer_table)
@@ -437,9 +424,9 @@ class CllifordCorrecter:
         self.is_soft = is_soft
         if insert_layer_indexes is None:
             insert_layer_indexes = np.random.choice(depth, 1, replace=False)
-        self.d_max = len(insert_layer_indexes)
+        self.d_max = 2
         self.insert_layer_indexes = insert_layer_indexes
-        print(self.insert_layer_indexes)
+        # print(self.insert_layer_indexes)
         self.constraints = []
         self.soft_constraints = []
         self.iout_idx = 0
@@ -495,7 +482,13 @@ class CllifordCorrecter:
         """
         Adds the input and output stabilizer tables to the program.
         """
-        self.constraintssmt2= ray.get([add_iout_parrelell.remote(self.n,input_stabilizer_tables[i].to_dict(),output_stabilizer_tables[i].to_dict(),list(self.program),is_soft= self.is_soft,singleq_gates= self.singleq_gates, twoq_gates= self.twoq_gates, insert_layer_indexes= self.insert_layer_indexes) for i in range(len(input_stabilizer_tables))])
+        insert_index = self.insert_layer_indexes[0]
+        beforegates = self.program[:insert_index]
+        aftergates = self.program[insert_index:]
+        aftergates.reverse()
+        mid_inputs = [beforegates.output_stablizers(input_tab) for input_tab in input_stabilizer_tables]
+        mid_outputs = [aftergates.output_stablizers(output_tab) for output_tab in output_stabilizer_tables]
+        self.constraintssmt2= ray.get([add_iout_parrelell.remote(mid_inputs[i].to_dict(),mid_outputs[i].to_dict(),num_qubits=self.n, is_soft= self.is_soft,singleq_gates= self.singleq_gates, twoq_gates= self.twoq_gates) for i in range(len(input_stabilizer_tables))])
         
         # self.constraintssmt2= [add_iout_parrelell(input_stabilizer_tables[i].to_dict(),output_stabilizer_tables[i].to_dict(),self.is_soft,self.program,self.singleq_gates,self.twoq_gates) for i in range(len(input_stabilizer_tables))]
         
@@ -509,7 +502,7 @@ class CllifordCorrecter:
         Solves the Clliford solver.
         """
         self.unique_gate()
-        # self.inverse_cancel()
+        self.inverse_cancel()
         if self.is_soft:
             s = Optimize()
         else:
@@ -517,36 +510,17 @@ class CllifordCorrecter:
         for c in self.constraints:
             s.add(c)
         
-        alllines = []
-        filelines = []
         for file in self.constraintssmt2:
             try:
-                ## delete the smt2 line start with (declare-fun 
-                
-                with open(file, 'r') as f:
-                    lines = f.readlines()
-                    for line in lines:
-                        ##drop the enter key
-                        line = line.strip('\n')
-                        if line.startswith("(declare-fun") and line not in alllines:
-                            alllines.append(line)
-                            filelines.append(line)
-                        elif not line.startswith("(declare-fun"):
-                            filelines.append(line)
-                os.remove(file)
-                
+                s.from_file(file)
+                print('read smt2 file successfully')
             except Exception as e:
                 print("Error parsing SMT-LIB:")
                 raise e
-        import uuid
-        idx = uuid.uuid1()
-        with open(f"data/constraints/constraints{idx}.smt2", "w") as f:
-            for line in filelines:
-                f.write(line)
-        s.from_file(f"data/constraints/constraints{idx}.smt2")
-
-        os.remove(f"data/constraints/constraints{idx}.smt2")
-            # print(file)
+            ## delete the smt2 file
+        for file in self.constraintssmt2:
+            print(file)
+            os.remove(file)
         # for c in self.soft_constraints:
         #     s.add_soft(c)
         s.set("timeout", self.time_out_eff*self.n**5)
@@ -564,21 +538,21 @@ class CllifordCorrecter:
             #             satisfied_num += 1
                 # print("Satisfied soft constraints portion(%): ", (satisfied_num/len(self.soft_constraints))**100)
             for d in range(len(self.program)):
-                print('layer',d)
                 fix_program.append(self.program[d])
                 if d not in self.insert_layer_indexes:
                     continue
-                d = self.insert_layer_indexes.index(d)
-                for q in range(self.n):
-                    for gate in self.singleq_gates:
-                        method = getattr(fix_program, gate.lower())
-                        if m[getattr(self, gate + "vars")[q][d]]:
-                            method(q)
-                    for t in range(self.n):
-                        if q!= t:
-                            for gate in self.twoq_gates:
-                                method = getattr(fix_program, gate.lower())
-                                if m[getattr(self, gate + "vars")[q][t][d]]:
-                                    method(q,t)
+                d = self.insert_layer_indexes.tolist().index(d)
+                for d in range(self.d_max):
+                    for q in range(self.n):
+                        for gate in self.singleq_gates:
+                            method = getattr(fix_program, gate.lower())
+                            if m[getattr(self, gate + "vars")[q][d]]:
+                                method(q)
+                        for t in range(self.n):
+                            if q!= t:
+                                for gate in self.twoq_gates:
+                                    method = getattr(fix_program, gate.lower())
+                                    if m[getattr(self, gate + "vars")[q][t][d]]:
+                                        method(q,t)
 
             return fix_program

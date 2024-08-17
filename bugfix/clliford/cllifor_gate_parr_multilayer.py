@@ -42,7 +42,7 @@ class ConstraintsGenerator:
         for gate in self.singleq_gates+['I']:
             SingleQgates = []
             for q in range(self.n):
-                SingleQgate_q =  [Bool("{}_{}_{}".format(gate, q, d)) for d in range(self.d_max)]
+                SingleQgate_q =  [Bool("{}_{}_{}".format(gate, q, d)) for d in range(2*self.d_max)]
                 SingleQgates.append(SingleQgate_q)
             setattr(self, gate + "vars",SingleQgates)
         for gate in self.twoq_gates:
@@ -53,7 +53,8 @@ class ConstraintsGenerator:
                     if q!= t:
                         twoqvars[q][t] = [Bool("{}_{}_{}_{}".format(gate, q, t, d)) for d in range(self.d_max)]
             setattr(self, gate+"vars",twoqvars)
-        
+    
+    
     def apply_gate_var(self, gate,qubits,var):
         """
         Applies a gate to the Clliford solver.
@@ -101,12 +102,15 @@ class ConstraintsGenerator:
         from z3 import Solver, Optimize
         if self.is_soft:
             solver = Optimize()
-            for cons in self.soft_constraints:
-                solver.add_soft(simplify(cons))
+            
+            # for cons in self.soft_constraints:
+            #     solver.add_soft(simplify(cons))
+            solver.add(And(*self.soft_constraints))
         else:
             solver = Solver()
-            for cons in self.soft_constraints:
-                solver.add(simplify(cons))
+            # for cons in self.soft_constraints:
+            #     solver.add(simplify(cons))
+            solver.add(And(*self.soft_constraints))
         
         # Export constraints to SMT-LIB format
         constraints_smtlib = solver.sexpr()
@@ -184,13 +188,23 @@ class ConstraintsGenerator:
             didx = self.insert_layer_indexes.index(d)
             for q in range(self.n):
                 for gate in self.singleq_gates:
-                    self.apply_gate_var(gate,[q],getattr(self, gate + "vars")[q][didx])
-                # self.simplify_tab()
+                    self.apply_gate_var(gate,[q],getattr(self, gate + "vars")[q][2*didx])
+                # self.simplify_tab()、
+            for q in range(self.n):
                 for t in range(self.n):
                     if q!= t:
                         for gate in self.twoq_gates:
                             self.apply_gate_var(gate,[q,t],getattr(self, gate + "vars")[q][t][didx])
+            for q in range(self.n):
+                for gate in self.singleq_gates:
+                    self.apply_gate_var(gate,[q],getattr(self, gate + "vars")[q][2*didx+1])
                 # self.simplify_tab()
+                
+                                                                                      
+                # self.simplify_tab()
+                
+    def apply_id(self, qubits):
+        pass
     def apply_h(self, qubits):
         # Swap X and Z for the given qubit
         qubit = qubits[0]
@@ -391,8 +405,6 @@ class ConstraintsGenerator:
             # self.X[i][target] =  If(CXvar, self.X[i][target]^self.X[i][control], self.X[i][target])
             self.Z[i][control] =  Xor(self.Z[i][control], self.Z[i][target] & CXvar)
             # self.Z[i][control] =  If(CXvar, self.Z[i][control]^self.Z[i][target], self.Z[i][control])
-            
-            
     def apply_cx(self, qubits):
         control, target = qubits
         # Apply CNOT gate from control to target
@@ -436,7 +448,7 @@ class CllifordCorrecter:
         depth = program.depth()
         self.is_soft = is_soft
         if insert_layer_indexes is None:
-            insert_layer_indexes = np.random.choice(depth, 1, replace=False)
+            insert_layer_indexes = np.random.choice(depth, 1, replace=False).tolist()
         self.d_max = len(insert_layer_indexes)
         self.insert_layer_indexes = insert_layer_indexes
         print(self.insert_layer_indexes)
@@ -454,7 +466,7 @@ class CllifordCorrecter:
         for gate in self.singleq_gates+['I']:
             SingleQgates = []
             for q in range(self.n):
-                SingleQgate_q =  [Bool("{}_{}_{}".format(gate, q, d)) for d in range(self.d_max)]
+                SingleQgate_q =  [Bool("{}_{}_{}".format(gate, q, d)) for d in range(2*self.d_max)]
                 SingleQgates.append(SingleQgate_q)
             setattr(self, gate + "vars",SingleQgates)
         for gate in self.twoq_gates:
@@ -470,14 +482,18 @@ class CllifordCorrecter:
         """
         one depth and one qubit at a time
         """
-        for d in range(self.d_max):
+        for d in range(2*self.d_max):
             for q in range(self.n):
                 gatelist = [getattr(self, gate + "vars")[q][d] for gate in self.singleq_gates+['I']]
+                self.constraints.append(Sum(gatelist) == 1)
+        for d in range(self.d_max):
+            for q in range(self.n):
+                gatelist = []
                 twogatelist = [getattr(self, gate + "vars")[q][t][d] for t in range(self.n) for gate in self.twoq_gates if q!= t]
                 gatelist.extend(twogatelist)
                 twogatelist = [getattr(self, gate + "vars")[t][q][d] for t in range(self.n) for gate in self.twoq_gates if q!= t]
                 gatelist.extend(twogatelist)
-                self.constraints.append(Sum(gatelist) == 1)
+                self.constraints.append(Sum(gatelist) <= 1)
                 
         
     def inverse_cancel(self):
@@ -549,13 +565,17 @@ class CllifordCorrecter:
             # print(file)
         # for c in self.soft_constraints:
         #     s.add_soft(c)
-        s.set("timeout", self.time_out_eff*self.n**5)
+        s.set("timeout", int(self.time_out_eff*self.n**5))
         print("Solving...")
         print(s.check())
         fix_program = LayerCllifordProgram(self.n)
         # print(s.model())
         if s.check() == unknown or s.check() == sat:
+            from time import perf_counter
+            start = perf_counter()
             m = s.model()
+            end = perf_counter()
+            print("Read Time elapsed: ", end-start)
             ## evaluate the model
             # if s.check() == unknown:
             #     satisfied_num = 0
@@ -563,8 +583,8 @@ class CllifordCorrecter:
             #         if m.evaluate(cons_soft):
             #             satisfied_num += 1
                 # print("Satisfied soft constraints portion(%): ", (satisfied_num/len(self.soft_constraints))**100)
+            start = perf_counter()
             for d in range(len(self.program)):
-                print('layer',d)
                 fix_program.append(self.program[d])
                 if d not in self.insert_layer_indexes:
                     continue
@@ -572,13 +592,20 @@ class CllifordCorrecter:
                 for q in range(self.n):
                     for gate in self.singleq_gates:
                         method = getattr(fix_program, gate.lower())
-                        if m[getattr(self, gate + "vars")[q][d]]:
+                        if m[getattr(self, gate + "vars")[q][2*d]]:
                             method(q)
+                for q in range(self.n):
                     for t in range(self.n):
                         if q!= t:
                             for gate in self.twoq_gates:
                                 method = getattr(fix_program, gate.lower())
                                 if m[getattr(self, gate + "vars")[q][t][d]]:
                                     method(q,t)
-
+                for q in range(self.n):
+                    for gate in self.singleq_gates:
+                        method = getattr(fix_program, gate.lower())
+                        if m[getattr(self, gate + "vars")[q][2*d+1]]:
+                            method(q)
+            end = perf_counter()
+            print("Read Circuit Time elapsed: ", end-start)
             return fix_program

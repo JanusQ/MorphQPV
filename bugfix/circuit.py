@@ -447,7 +447,7 @@ def circuit_to_pennylane(circuit: Circuit, params=None, offest=0):
     for layer in circuit:
         for gate in layer:
             qubits = [q+offest for q in gate['qubits']]
-            if gate['name'] == 'u':
+            if gate['name'] == 'u3':
                 if params is None:
                     theta, phi, lam = gate['params']
                 else:

@@ -115,7 +115,7 @@ def replace_param_gates_with_clifford(circuit):
 #     return new_circuit
 
 
-def generate_input_states(n_qubits, n_states=8):
+def generate_input_circuits(n_qubits, n_states=8):
     states = []
     for _ in range(n_states):
         cllifordgate = random_clifford(n_qubits)
@@ -135,6 +135,43 @@ def generate_input_states(n_qubits, n_states=8):
     #         if random.random() > 0.75:
     #             state.x(qubit)
     #     states.append(state)
+    return states
+
+
+
+def generate_input_circuits(n_qubits, n_states=8):
+    circuits = []
+    for _ in range(n_states):
+        cllifordgate = random_clifford(n_qubits)
+        state = cllifordgate.to_circuit()
+        circuits.append(state)
+    
+    # Alternative method for generating input states
+    # for _ in range(n_states):
+    #     state = QuantumCircuit(n_qubits)
+    #     for qubit in range(n_qubits):
+    #         if random.random() < 0.25:
+    #             state.h(qubit)
+    #         if 0.25 <random.random() < 0.5:
+    #             state.cx(qubit,(qubit+1)%n_qubits)
+    #         if 0.5 <random.random() < 0.75:
+    #             state.cx((qubit+1)%n_qubits,qubit)
+    #         if random.random() > 0.75:
+    #             state.x(qubit)
+    #     states.append(state)
+    return circuits
+
+
+
+def generate_input_states(n_qubits, n_states=8):
+    states = []
+    for _ in range(n_states):
+        cllifordgate = random_clifford(n_qubits)
+        qc = cllifordgate.to_circuit()
+        backend = Aer.get_backend('statevector_simulator')
+        job = execute(qc, backend)
+        output_state = job.result().get_statevector(qc)
+        states.append(output_state)
     return states
 
 def apply_circuit(circuit, input_state):
